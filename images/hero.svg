@@ -1,0 +1,65 @@
+<svg width="600" height="350" xmlns="http://www.w3.org/2000/svg" style="background-color:#242526">
+  <title>Neural Network Visualization</title>
+
+  <!-- Connections -->
+  <g stroke="#25c2a0" stroke-width="1.8" opacity="0.85">
+    <!-- Input → Hidden 1 -->
+    <line x1="120" y1="70"  x2="280" y2="80"/>
+    <line x1="120" y1="70"  x2="280" y2="150"/>
+    <line x1="120" y1="70"  x2="280" y2="220"/>
+    <line x1="120" y1="130" x2="280" y2="80"/>
+    <line x1="120" y1="130" x2="280" y2="150"/>
+    <line x1="120" y1="130" x2="280" y2="220"/>
+    <line x1="120" y1="190" x2="280" y2="80"/>
+    <line x1="120" y1="190" x2="280" y2="150"/>
+    <line x1="120" y1="190" x2="280" y2="220"/>
+    <line x1="120" y1="250" x2="280" y2="80"/>
+    <line x1="120" y1="250" x2="280" y2="150"/>
+    <line x1="120" y1="250" x2="280" y2="220"/>
+
+    <!-- Hidden 1 → Hidden 2 -->
+    <line x1="280" y1="80"  x2="400" y2="110"/>
+    <line x1="280" y1="80"  x2="400" y2="180"/>
+    <line x1="280" y1="150" x2="400" y2="110"/>
+    <line x1="280" y1="150" x2="400" y2="180"/>
+    <line x1="280" y1="220" x2="400" y2="110"/>
+    <line x1="280" y1="220" x2="400" y2="180"/>
+
+    <!-- Hidden 2 → Output -->
+    <line x1="400" y1="110" x2="540" y2="140"/>
+    <line x1="400" y1="180" x2="540" y2="140"/>
+  </g>
+
+  <!-- Input Layer -->
+  <g fill="#d3d3d3" stroke="black" stroke-width="1">
+    <circle cx="120" cy="70" r="14"/>
+    <circle cx="120" cy="130" r="14"/>
+    <circle cx="120" cy="190" r="14"/>
+    <circle cx="120" cy="250" r="14"/>
+  </g>
+
+  <!-- Hidden Layer 1 -->
+  <g fill="#25c2a0" stroke="#1a1a1a" stroke-width="1">
+    <circle cx="280" cy="80" r="14"/>
+    <circle cx="280" cy="150" r="14"/>
+    <circle cx="280" cy="220" r="14"/>
+  </g>
+
+  <!-- Hidden Layer 2 -->
+  <g fill="#25c2a0" stroke="#1a1a1a" stroke-width="1">
+    <circle cx="400" cy="110" r="14"/>
+    <circle cx="400" cy="180" r="14"/>
+  </g>
+
+  <!-- Output -->
+  <circle cx="540" cy="140" r="18" fill="#d3d3d3" stroke="black" stroke-width="1.2"/>
+
+  <!-- Labels -->
+  <text x="120" y="300" text-anchor="middle" fill="white" font-family="sans-serif" font-size="14">Input</text>
+  <text x="280" y="300" text-anchor="middle" fill="white" font-family="sans-serif" font-size="14">Hidden 1</text>
+  <text x="400" y="300" text-anchor="middle" fill="white" font-family="sans-serif" font-size="14">Hidden 2</text>
+  <text x="540" y="300" text-anchor="middle" fill="white" font-family="sans-serif" font-size="14">Output</text>
+
+  <!-- Glow Effect -->
+  <circle cx="540" cy="140" r="35" fill="none" stroke="#25c2a0" stroke-width="1.5" opacity="0.3"/>
+</svg>
