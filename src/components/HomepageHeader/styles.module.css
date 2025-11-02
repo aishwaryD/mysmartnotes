@@ -1,57 +1,161 @@
-.hero {
-    padding: 80px 40px;
+.heroContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.text {
+  flex: 1;
+  max-width: 550px;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  color: #ccc;
+}
+
+.ctaButtons {
+  display: flex;
+  gap: 1rem;
+}
+
+.image {
+  flex: 1;
+  text-align: right;
+}
+
+.image img {
+  max-width: 500px;
+  height: auto;
+}
+
+.highlight {
+  color: #25C2A0; /* Mint green (matches your theme) */
+  font-weight: 600;
+}
+
+/* Tablet: Begin reducing size gradually from 1200px down */
+@media screen and (max-width: 1200px) {
+  .title {
+    font-size: 2.5rem;
   }
-  
-  .inner {
-    max-width: 1200px;
-    margin: 0 auto;
+
+  .subtitle {
+    font-size: 1.1rem;
+  }
+
+  .image img {
+    max-width: 500px;
+  }
+}
+
+/* 1025px: Keep both sides balanced */
+@media screen and (max-width: 1025px) {
+  .title {
+    font-size: 2.3rem;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+  }
+
+  .image img {
+    max-width: 500px;
+  }
+
+  .text {
+    max-width: 90%;
+  }
+}
+
+/* 1024px and below: force layout to stay side by side */
+@media screen and (max-width: 1024px) {
+  .heroContent {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+  }
+
+  .text {
+    flex: 1;
+  }
+
+  .image {
+    flex: 1;
+    text-align: right;
+  }
+
+  .image img {
+    max-width: 500px;
+  }
+
+  .ctaButtons {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+}
+
+/* Mobile stack */
+@media screen and (max-width: 768px) {
+  .heroContent {
+    flex-direction: column;
+    align-items: center;
     text-align: center;
   }
-  
-  .left {
+
+  .image {
+    display: none;
+  }
+
+  .text {
+    max-width: 100%;
+  }
+
+  .ctaButtons {
+    justify-content: center;
+  }
+}
+
+/* Small screen optimization */
+@media screen and (max-width: 480px) {
+  .title {
+    font-size: 2rem;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+  }
+
+  .ctaButtons {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .ctaButtons a {
     width: 100%;
   }
-  
-  .logo {
-    float: none;
-    width: 140px;
-    margin-bottom: 20px;
+
+  .text {
+    padding: 0 1rem;
   }
-  
-  .right {
-    width: 100%;
-  }
-  
-  .buttons > a:first-child {
-    margin-right: 10px;
-  }
-  
-  @media screen and (min-width: 1000px) {
-    .inner {
-      text-align: initial;
-    }
-  
-    .left {
-      display: inline-block;
-      width: 40%;
-      vertical-align: top;
-    }
-  
-    .logo {
-      float: right;
-      margin-right: 60px;
-      width: 200px;
-    }
-  
-    .right {
-      display: inline-block;
-      width: 60%;
-    }
-  }
-  
-  @media screen and (max-width: 480px) {
-    .buttons > a {
-      width: 100%;
-      margin-bottom: 10px;
-    }
-  }
+}
+
+
+
+
+
+
+
+
+
+
+

@@ -1,47 +1,32 @@
-import React from "react";
-import ThemedImage from '@theme/ThemedImage';
-import useBaseUrl from '@docusaurus/useBaseUrl';
+import React from 'react';
 import Link from '@docusaurus/Link';
-import styles from "./styles.module.css";
-import Translate from '@docusaurus/Translate';
+import useBaseUrl from '@docusaurus/useBaseUrl';
+import styles from './styles.module.css';
 
 export default function HomepageHeader() {
   return (
-    <header className={styles.hero}>
-      <div className={styles.inner}>
-        <div className={styles.left}>
-          <ThemedImage
-            className={styles.logo}
-            alt="My Smart Notes logo"
-            sources={{
-              light: useBaseUrl("images/logo.svg"),
-              dark: useBaseUrl("images/logo.svg"),
-            }}
-          />
-        </div>
-        <div className={styles.right}>
-          <h1 className="title">My Smart Notes</h1>
-          <p >
-            <Translate>Quick Reference Portal for Software Engineers!</Translate>
-          </p>
-          <p >
-            <Translate>Everything you need - all straight to the point!!</Translate>
-          </p>
-
-          <div className={styles.buttons}>
-            <Link
-              className="button button--primary button--lg"
-              to="/voice-over-internet-protocol">
-              <Translate>Start Reading →</Translate>
-            </Link>
-            <Link
-              className="button button--secondary button--lg"
-              to="/cheatsheet/rest-api">
-              <Translate>Cheat Sheets</Translate>
-            </Link>
+    <header className="hero">
+      <div className="container">
+        <div className={styles.heroContent}>
+          <div className={styles.text}>
+            <h1 className={styles.title}>AI Engineering, Simplified</h1>
+            <p className={styles.subtitle}>
+              Open-source, structured learning for building the next generation of intelligent systems.
+            </p>
+            <div className={styles.ctaButtons}>
+              <Link className="button button--secondary button--lg custom-primary" to="/introduction-to-agentic-ai">
+                Start Learning →
+              </Link>
+            </div>
+          </div>
+          <div className={styles.image}>
+            <img
+              src={useBaseUrl('images/hero.svg')}
+              alt="AI Engineering illustration"
+            />
           </div>
         </div>
       </div>
     </header>
-  )
+  );
 }

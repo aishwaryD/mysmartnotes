@@ -2,10 +2,10 @@ import {themes as prismThemes} from 'prism-react-renderer';
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'My Smart Notes | Quick Reference Portal for Tech',
-  tagline: 'Quick Reference Portal for Software Engineers',
+  title: 'My Smart Notes',
+  tagline: 'AI Engineering, Simplified',
   // favicon: 'images/favicon.ico',
-  favicon: 'images/logo.svg',
+  favicon: 'images/logo-icon.svg',
   url: 'https://mysmartnotes.com',
   baseUrl: '/',
   organizationName: 'aishwaryD',
@@ -46,61 +46,61 @@ const config = {
     ],
   ],
 
-  plugins: [
-    [
-      '@docusaurus/plugin-sitemap',
-      {
-        id: 'sitemap', // Assign a unique ID to the plugin instance
-        changefreq: 'weekly',
-        priority: 0.5,
-        ignorePatterns: ['/tags/**'],
-        filename: 'sitemap.xml',
-      },
-    ],
-    [
-      '@docusaurus/plugin-content-docs',
-      {
-        id: 'cheatsheets',
-        path: 'cheatsheets',
-        routeBasePath: 'cheatsheet',
-        sidebarPath: require.resolve('./sidebars.js'),
-        sidebarItemsGenerator({
-          isCategoryIndex: defaultCategoryIndexMatcher,
-          defaultSidebarItemsGenerator,
-          ...args
-        }) {
-          return defaultSidebarItemsGenerator({
-            ...args,
-            isCategoryIndex() {
-              return false;
-            },
-          });
-        },
-      },
-    ],
-    [
-      '@docusaurus/plugin-content-docs',
-      {
-        id: 'interviewqs',
-        path: 'interviewqs',
-        routeBasePath: 'interview-questions',
-        sidebarPath: require.resolve('./sidebars.js'),
-        sidebarItemsGenerator({
-          isCategoryIndex: defaultCategoryIndexMatcher,
-          defaultSidebarItemsGenerator,
-          ...args
-        }) {
-          return defaultSidebarItemsGenerator({
-            ...args,
-            isCategoryIndex() {
-              return false;
-            },
-          });
-        },
-      },
-    ],
-    '@docusaurus/theme-live-codeblock',//For Docusaurus Live Code Editor. Not for CodeMirror.
-  ],
+  // plugins: [
+  //   [
+  //     '@docusaurus/plugin-sitemap',
+  //     {
+  //       id: 'sitemap', // Assign a unique ID to the plugin instance
+  //       changefreq: 'weekly',
+  //       priority: 0.5,
+  //       ignorePatterns: ['/tags/**'],
+  //       filename: 'sitemap.xml',
+  //     },
+  //   ],
+  //   [
+  //     '@docusaurus/plugin-content-docs',
+  //     {
+  //       id: 'cheatsheets',
+  //       path: 'cheatsheets',
+  //       routeBasePath: 'cheatsheet',
+  //       sidebarPath: require.resolve('./sidebars.js'),
+  //       sidebarItemsGenerator({
+  //         isCategoryIndex: defaultCategoryIndexMatcher,
+  //         defaultSidebarItemsGenerator,
+  //         ...args
+  //       }) {
+  //         return defaultSidebarItemsGenerator({
+  //           ...args,
+  //           isCategoryIndex() {
+  //             return false;
+  //           },
+  //         });
+  //       },
+  //     },
+  //   ],
+  //   [
+  //     '@docusaurus/plugin-content-docs',
+  //     {
+  //       id: 'interviewqs',
+  //       path: 'interviewqs',
+  //       routeBasePath: 'interview-questions',
+  //       sidebarPath: require.resolve('./sidebars.js'),
+  //       sidebarItemsGenerator({
+  //         isCategoryIndex: defaultCategoryIndexMatcher,
+  //         defaultSidebarItemsGenerator,
+  //         ...args
+  //       }) {
+  //         return defaultSidebarItemsGenerator({
+  //           ...args,
+  //           isCategoryIndex() {
+  //             return false;
+  //           },
+  //         });
+  //       },
+  //     },
+  //   ],
+  //   '@docusaurus/theme-live-codeblock',//For Docusaurus Live Code Editor. Not for CodeMirror.
+  // ],
   
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
@@ -112,52 +112,74 @@ const config = {
       disableSwitch: true,
       defaultMode: 'dark',
     },
-    image: 'images/logo.svg',
+    image: 'images/logo-icon.svg',
     navbar: {
       title: 'My Smart Notes',
       logo: {
         alt: 'My Smart Notes',
-        src: 'images/logo.svg',
-        srcDark: 'images/logo.svg',
+        src: 'images/logo-icon.svg',
+        srcDark: 'images/logo-icon.svg',
       },
+
       items: [
         {
-          type: "dropdown",
-          label: "Explore Fundamentals",
-          position: "left",
-          items: [
-            {
-              type: "doc",
-              docId: "categories/Computer Networks/voip",
-              label: "Computer Networks",
-            },
-          ]
+          to: '/introduction-to-agentic-ai',
+          label: 'Explore AI',
+          position: 'left',
+          activeBaseRegex: '^/$', 
         },
         {
-          type: "dropdown",
-          label: "Grab Cheatsheets",
-          position: "left",
-          items: [
-            {
-              to: 'cheatsheet/rest-api',
-              label: 'Backend',
-              activeBaseRegex: `/cheatsheet/`,
-            },
-          ]
+          to: '/agentic-ai-design-patterns',
+          position: 'left',
         },
-        {
-          type: "dropdown",
-          label: "Crack Interviews",
-          position: "left",
-          items: [
-            {
-              to: 'interview-questions/most-asked-coding-questions',
-              label: 'Coding Interview Questions',
-              activeBaseRegex: `/interview-questions/`,
-            },
-          ]
-        },
+        // {
+        //   to: '/introduction-to-machine-learning',
+        //   position: 'left',
+        // },
+        // {
+        //   to: '/ml-patterns',
+        //   position: 'left',
+        // },
       ],
+
+      // items: [
+      //   {
+      //     type: "dropdown",
+      //     label: "Explore AI",
+      //     position: "left",
+      //     items: [
+      //       {
+      //         type: "doc",
+      //         docId: "categories/Computer Networks/voip",
+      //         label: "Computer Networks",
+      //       },
+      //     ]
+      //   },
+        // {
+        //   type: "dropdown",
+        //   label: "Agentic AI",
+        //   position: "left",
+        //   items: [
+        //     {
+        //       to: 'cheatsheet/rest-api',
+        //       label: 'Backend',
+        //       activeBaseRegex: `/cheatsheet/`,
+        //     },
+        //   ]
+        // },
+        // {
+        //   type: "dropdown",
+        //   label: "MLOps",
+        //   position: "left",
+        //   items: [
+        //     {
+        //       to: 'interview-questions/most-asked-coding-questions',
+        //       label: 'Coding Interview Questions',
+        //       activeBaseRegex: `/interview-questions/`,
+        //     },
+        //   ]
+        // },
+      // ],
     },
     footer: {
       style: 'dark',

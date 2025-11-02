@@ -1,11 +1,11 @@
 import React from 'react';
 import Layout from '@theme/Layout';
-import HomepageHeader from "../components/HomepageHeader";
+import HomepageHeader from '../components/HomepageHeader';
 import HomepageFeatures from '../components/HomepageFeatures';
 
 export default function Home() {
   return (
-    <Layout>
+    <Layout title="AI Engineering, Simplified">
       <HomepageHeader />
       <main>
         <HomepageFeatures />
@@ -13,3 +13,4 @@ export default function Home() {
     </Layout>
   );
 }
+

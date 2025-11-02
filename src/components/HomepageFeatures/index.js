@@ -1,46 +1,25 @@
 import React from 'react';
-import clsx from 'clsx';
-import styles from "./styles.module.css";
-import Translate from '@docusaurus/Translate';
-import ShortAndCrisp from '../images/shortandcrisp.svg';
-import ToThePoint from '../images/tothepoint.svg';
-import UpToDate from '../images/uptodate.svg';
+import styles from './styles.module.css';
 
 const FeatureList = [
   {
-    title: <Translate>Short and Crisp</Translate>,
-    description: (
-      <Translate>
-        Uncover tech essentials with concise content and tutorials. Short, impactful, and laser-focused for your learning needs.
-      </Translate>
-    ),
-    icon: <ShortAndCrisp className={ styles.icon } />
+    title: 'Build Intelligent Systems',
+    description: 'From deep learning to agentic AI - build models and architectures that reason, plan, and act.',
   },
   {
-    title: <Translate>To the Point</Translate>,
-    description: (
-      <Translate>
-        Navigate your software engineering journey effortlessly with straightforward content. No noise, just the precise insights. 
-      </Translate>
-    ),
-    icon: <ToThePoint className={ styles.icon } />,
+    title: 'Automate and Deploy',
+    description: 'Master MLOps and orchestration tools - train, fine-tune, and deploy AI systems and APIs.',
   },
   {
-    title: <Translate>Up to Date</Translate>,
-    description: (
-      <Translate>
-        Stay ahead with the latest insights and be equipped with the most current knowledge in the fast-paced world of technology.
-      </Translate>
-    ),
-    icon: <UpToDate className={ styles.icon } />
+    title: 'Integrate AI Everywhere',
+    description: 'Connect AI models, data, and tools to create seamless, adaptive workflows across the stack.',
   },
 ];
 
-function Feature({ title, description, icon }) {
+function Feature({ title, description }) {
   return (
-    <div className={clsx('col col--4')}>
-      <div className={clsx(styles.feature, "text--center padding-horiz--md")}>
-        { icon }
+    <div className="col col--4">
+      <div className={styles.featureBox}>
         <h3>{title}</h3>
         <p>{description}</p>
       </div>
@@ -50,7 +29,7 @@ function Feature({ title, description, icon }) {
 
 export default function HomepageFeatures() {
   return (
-    <section className={styles.features}>
+    <section className="hero">
       <div className="container">
         <div className="row">
           {FeatureList.map((props, idx) => (
@@ -61,3 +40,4 @@ export default function HomepageFeatures() {
     </section>
   );
 }
+

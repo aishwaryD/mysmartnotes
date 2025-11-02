@@ -20,3 +20,35 @@
   --ifm-color-primary-lightest: #4fddbf;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
 }
+
+.footer {
+  background-color: #242526 !important;
+  color: #e0e0e0;
+  border-top: 1px solid #3a3b3c;
+  padding: 1rem 0; /* Reduced height */
+  font-size: 0.85rem; /* Optional: slightly smaller text */
+}
+
+.footer a {
+  color: #ccc;
+}
+
+.footer a:hover {
+  color: white;
+}
+
+.footer .footer__links {
+  display: none;
+}
+
+.button.custom-primary {
+  background-color: #25C2A0 !important;
+  color: #000000 !important;
+}
+
+.button.custom-primary:hover {
+  background-color: #1fa588 !important;
+  color: #000000 !important;
+}
+
+
