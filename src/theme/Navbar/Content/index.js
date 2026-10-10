@@ -1,0 +1,114 @@
+import React from 'react';
+import Link from '@docusaurus/Link';
+import {useThemeConfig, ErrorCauseBoundary} from '@docusaurus/theme-common';
+import {
+  splitNavbarItems,
+  useNavbarMobileSidebar,
+} from '@docusaurus/theme-common/internal';
+import NavbarItem from '@theme/NavbarItem';
+import NavbarColorModeToggle from '@theme/Navbar/ColorModeToggle';
+import NavbarLogo from '@theme/Navbar/Logo';
+import NavbarMobileSidebarToggle from '@theme/Navbar/MobileSidebar/Toggle';
+import styles from './styles.module.css';
+
+function useNavbarItems() {
+  return useThemeConfig().navbar.items;
+}
+
+function NavbarItems({items}) {
+  return (
+    <>
+      {items.map((item, i) => (
+        <ErrorCauseBoundary
+          key={i}
+          onError={(error) =>
+            new Error(
+              `A theme navbar item failed to render.
+Please double-check the following navbar item (themeConfig.navbar.items) of your Docusaurus config:
+${JSON.stringify(item, null, 2)}`,
+              {cause: error},
+            )
+          }>
+          <NavbarItem {...item} />
+        </ErrorCauseBoundary>
+      ))}
+    </>
+  );
+}
+
+function NavbarContentLayout({left, right}) {
+  return (
+    <div className="navbar__inner">
+      <div className="navbar__items">{left}</div>
+      <div className="navbar__items navbar__items--right">{right}</div>
+    </div>
+  );
+}
+
+function DesktopSearch() {
+  return (
+    <div className="navbar__item msn-navbar-search-item">
+      <form className="msn-navbar-search" action="/search" method="get">
+        <input
+          className="msn-navbar-search-input"
+          type="search"
+          name="q"
+          placeholder="Search topics"
+          aria-label="Search topics"
+        />
+      </form>
+    </div>
+  );
+}
+
+function MobileSearchLink() {
+  return (
+    <Link
+      className="navbar__item clean-btn msn-mobile-search-trigger"
+      to="/search"
+      aria-label="Search topics"
+      title="Search topics">
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        width="18"
+        height="18"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round">
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3.5-3.5" />
+      </svg>
+    </Link>
+  );
+}
+
+export default function NavbarContent() {
+  const mobileSidebar = useNavbarMobileSidebar();
+  const items = useNavbarItems();
+  const [leftItems, rightItems] = splitNavbarItems(items);
+
+  return (
+    <>
+      <NavbarContentLayout
+        left={
+          <>
+            <NavbarLogo />
+            <NavbarItems items={leftItems} />
+          </>
+        }
+        right={
+          <>
+            <DesktopSearch />
+            <MobileSearchLink />
+            {!mobileSidebar.disabled && <NavbarMobileSidebarToggle />}
+            <NavbarItems items={rightItems} />
+            <NavbarColorModeToggle className={styles.colorModeToggle} />
+          </>
+        }
+      />
+    </>
+  );
+}

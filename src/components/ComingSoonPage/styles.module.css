@@ -1,0 +1,195 @@
+.page {
+  display: flex;
+  min-height: calc(100svh - var(--ifm-navbar-height) - 60px);
+  background: var(--ifm-background-color);
+}
+
+.content {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(460px, 1.2fr);
+  gap: clamp(3rem, 8vw, 8rem);
+  align-items: center;
+  width: min(100% - 2rem, 1280px);
+  margin: auto;
+  padding: clamp(4rem, 8vw, 7rem) 0;
+}
+
+.status {
+  margin: 0 0 1rem;
+  color: var(--ifm-color-primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.copy h1 {
+  max-width: 10ch;
+  margin: 0;
+  font-size: clamp(3.2rem, 6vw, 6rem);
+  font-weight: 570;
+  letter-spacing: -0.055em;
+  line-height: 0.96;
+}
+
+.copy > p:not(.status) {
+  max-width: 43ch;
+  margin: 1.5rem 0 2rem;
+  color: #a5aaa8;
+  font-size: 0.98rem;
+  line-height: 1.7;
+}
+
+.copy a {
+  color: #cfd2d1;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.copy a:hover {
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+}
+
+.visual {
+  overflow: hidden;
+  border: 1px solid #3a3b3c;
+  background: #202123;
+}
+
+.visual svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: var(--ifm-color-primary);
+}
+
+.gridLines path {
+  fill: none;
+  stroke: #303433;
+  stroke-width: 1;
+}
+
+.mutedLines path {
+  fill: none;
+  stroke: #626866;
+  stroke-width: 1.2;
+}
+
+.activeLines path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+}
+
+.arrowHead {
+  fill: currentColor;
+  stroke: none;
+}
+
+.diagramNodes rect,
+.diagramNodes circle,
+.diagramNodes path,
+.arrayCells rect {
+  fill: #242628;
+  stroke: #6b716e;
+  stroke-width: 1.2;
+}
+
+.diagramNodes g path {
+  fill: none;
+  stroke: #555b58;
+  stroke-width: 1;
+}
+
+.accentNodes circle {
+  fill: rgba(37, 194, 160, 0.08);
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.diagramLabels,
+.arrayCells text,
+.diagramNotes,
+.outputCells text,
+.decisionLabel,
+.complexityStamp text {
+  fill: #d8dcda;
+  font-family: var(--ifm-font-family-base);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-anchor: middle;
+}
+
+.arrayCells text {
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.outputCells rect {
+  fill: rgba(37, 194, 160, 0.08);
+  stroke: currentColor;
+  stroke-width: 1.4;
+}
+
+.outputCells text {
+  font-size: 14px;
+  letter-spacing: 0;
+  text-anchor: middle;
+}
+
+.diagramNotes {
+  fill: #aeb3b1;
+  font-family: var(--ifm-font-family-base);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-anchor: start;
+}
+
+.decisionLabel {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-anchor: middle;
+}
+
+.complexityStamp rect {
+  fill: transparent;
+  stroke: #626866;
+  stroke-width: 1;
+}
+
+.complexityStamp text {
+  fill: #8f9693;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-anchor: middle;
+}
+
+@media (max-width: 850px) {
+  .content {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+
+  .copy h1 {
+    max-width: 14ch;
+  }
+
+  .visual {
+    max-width: 720px;
+  }
+}
+
+@media (max-width: 600px) {
+  .content {
+    gap: 2.5rem;
+    width: min(100% - 2rem, 1280px);
+    padding: 4rem 0;
+  }
+
+  .copy h1 {
+    font-size: clamp(3rem, 14vw, 4rem);
+  }
+}
