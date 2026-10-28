@@ -1,4 +1,2 @@
-// Published articles only. The notebook intentionally launches empty.
-const searchIndex = [];
-
-export default searchIndex;
+import articles from './articleIndex.json';
+export default articles;

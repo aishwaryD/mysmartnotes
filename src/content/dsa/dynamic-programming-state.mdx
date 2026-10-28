@@ -1,0 +1,100 @@
+The hardest line in many dynamic-programming solutions is the one nobody writes: the sentence explaining what a table entry means.
+
+Without that sentence, a recurrence looks like a pattern to memorise. With it, each update becomes a small claim you can check.
+
+We will use a familiar problem with a useful trap. You have unlimited coins of denominations 1, 3 and 4. What is the fewest number of coins needed to make a target amount?
+
+For 6, taking the largest available coin gives 4 + 1 + 1. Taking 3 + 3 is better. "Choose the largest" was an appealing rule, but it did not come with a proof.
+
+## Write the state in plain language {#state}
+
+Let `best[s]` mean **the minimum number of coins needed to make exactly amount `s`**.
+
+That definition answers several questions before we write code. We are making an exact amount, so overshooting is not allowed. We want a minimum, so impossible states must never look cheaper than real ones. Zero needs zero coins.
+
+Set `best[0] = 0`. Initially set every positive amount to infinity, meaning "no construction has been found". Infinity is useful here because adding a coin to an impossible construction should still be impossible.
+
+[MIT’s introductory dynamic-programming lecture](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/resources/lecture-19-dynamic-programming-i-fibonacci-shortest-paths/) develops the idea through reusable subproblems. Our coin example applies that habit to a different concrete state.
+
+## Ask what the last coin could have been {#recurrence}
+
+Suppose an optimal construction of amount `s` ends with a coin `c`. Everything before that final coin must make `s - c`.
+
+If that earlier construction were not optimal for its amount, replacing it with a better one would improve the full construction. So try every permitted final coin and keep the smallest result:
+
+```text
+best[s] = minimum of (best[s - c] + 1)
+          over coins c where c <= s
+```
+
+Every dependency uses a smaller amount because our denominations are positive integers. This gives us an evaluation order: solve amounts from zero upwards.
+
+The recurrence is not a command to copy a previous answer blindly. It is an exhaustive comparison of the possible final choices, made affordable by reusing the smaller answers.
+
+## Keep the decision as well as the score {#implementation}
+
+An answer of "two coins" is less useful than the coins themselves. Record which final coin improved each state, then walk backwards from the target.
+
+```js
+function minimumCoins(coins, amount) {
+  if (!Number.isSafeInteger(amount) || amount < 0) {
+    throw new RangeError('amount must be a nonnegative safe integer');
+  }
+  if (coins.some(c => !Number.isSafeInteger(c) || c <= 0)) {
+    throw new RangeError('coins must be positive safe integers');
+  }
+
+  const best = Array(amount + 1).fill(Infinity);
+  const chosen = Array(amount + 1).fill(null);
+  best[0] = 0;
+
+  for (let sum = 1; sum <= amount; sum += 1) {
+    for (const coin of coins) {
+      if (coin <= sum && best[sum - coin] + 1 < best[sum]) {
+        best[sum] = best[sum - coin] + 1;
+        chosen[sum] = coin;
+      }
+    }
+  }
+
+  if (best[amount] === Infinity) return null;
+  const result = [];
+  for (let sum = amount; sum > 0; sum -= chosen[sum]) {
+    result.push(chosen[sum]);
+  }
+  return {count: best[amount], coins: result};
+}
+```
+
+The input checks establish mathematical preconditions, not a production resource limit. A huge valid integer can still require an impossible allocation. A public service should impose a practical amount limit before allocating this table.
+
+## Read a few entries before trusting the loop {#trace}
+
+For denominations `[1, 3, 4]`, amounts 0 through 6 have minimum counts `[0, 1, 2, 1, 1, 2, 2]`.
+
+At amount 6, trying coin 1 gives `best[5] + 1 = 3`. Trying coin 3 gives `best[3] + 1 = 2`. Trying coin 4 gives `best[2] + 1 = 3`. The table chooses coin 3. Reconstructing follows 6 → 3 → 0.
+
+For `[4, 6]` and amount 5, every candidate remains impossible, so the result is `null`. For amount zero, the answer is a valid empty construction, not a failure.
+
+These cases test the meaning of the state. They are more informative than checking only an amount that contains a large denomination.
+
+## Understand the cost and the model {#complexity}
+
+With target `A` and `k` denominations, the loops do `O(Ak)` work and use `O(A)` table space, plus the returned coins. The algorithm is **pseudo-polynomial**: its cost depends on the numeric amount, which may be much larger than the number of bits needed to write that amount.
+
+A top-down memoised version could solve the same states on demand. It would need a cache and a recursion-depth policy. [CP-Algorithms’ DP introduction](https://cp-algorithms.com/dynamic_programming/intro-to-dp.html) explains this relationship between memoisation and bottom-up evaluation.
+
+Neither style rescues a poorly chosen state. First determine which information makes future decisions independent of the path used to reach that state.
+
+## Practice: change one word {#practice}
+
+Suppose each coin can be used **once**. Why is our one-dimensional unlimited-coin recurrence no longer enough as written?
+
+<details>
+<summary>Work through the approach</summary>
+
+The state must account for which coins are available. One explicit formulation is `best[i][s]`: the fewest coins making amount `s` using only the first `i` coins. Each row compares skipping coin `i` with taking it from the previous row.
+
+A space-optimised version processes each coin and updates amounts in descending order. Descending order prevents a coin’s freshly updated states from being reused in the same pass. Updating upwards would allow the current coin to be used repeatedly, quietly changing the problem back.
+
+</details>

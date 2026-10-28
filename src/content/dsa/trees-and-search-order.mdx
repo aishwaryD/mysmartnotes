@@ -1,0 +1,71 @@
+A binary tree gives every node at most two children. A binary **search** tree adds an ordering rule. Confusing those two descriptions is an easy way to promise logarithmic searches from a structure that does not provide them.
+
+For this guide, keys are finite unique numbers. Every key in a node’s left subtree is smaller than the node’s key, and every key in its right subtree is larger. A different duplicate policy is possible, but it must be explicit.
+
+## Use the ordering to discard a subtree {#search}
+
+```js
+function findInTree(root, key) {
+  let node = root;
+  while (node !== null) {
+    if (key === node.key) return node;
+    node = key < node.key ? node.left : node.right;
+  }
+  return null;
+}
+```
+
+Each node has `{key, left, right}`, with absent children represented by `null`. At a comparison, the invariant rules out one entire subtree. If the key is smaller, searching the right subtree would be pointless under the tree’s ordering contract.
+
+The number of comparisons is proportional to height. In a balanced tree, height is logarithmic in the number of nodes. In a tree built by inserting increasing keys without balancing, height can be linear.
+
+[MIT’s binary-search-tree reading](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/pages/readings/binary-search-trees/) includes ordinary and AVL implementations, making that difference concrete. A search-tree label alone is not a balancing guarantee.
+
+## Ancestor rules travel down the tree {#validation}
+
+Suppose the root is 10. Its right child is 18. The left child of 18 is 7.
+
+Each immediate parent-child comparison looks plausible around node 18: 7 is smaller than 18. But 7 is still in the root’s right subtree, where every key must exceed 10. The structure is invalid.
+
+A validator must carry bounds from all relevant ancestors.
+
+```js
+function validSearchTree(node, lower = -Infinity, upper = Infinity) {
+  if (node === null) return true;
+  if (!Number.isFinite(node.key) ||
+      node.key <= lower || node.key >= upper) return false;
+  return validSearchTree(node.left, lower, node.key) &&
+         validSearchTree(node.right, node.key, upper);
+}
+```
+
+This validator expects a finite acyclic tree with the node shape above. A cycle is not a tree and needs separate structural detection if untrusted input can contain one. The recursion uses stack space proportional to height, so an explicit-stack validator may be safer for very deep input.
+
+## Traversal order answers another question {#traversal}
+
+An in-order traversal visits the left subtree, the node, then the right subtree. In a valid search tree under our strict ordering rule, that produces increasing keys.
+
+Pre-order visits the node before its children. Post-order visits it after the children. These orders are useful when work depends on whether a parent or its children must be handled first.
+
+For example, computing a subtree’s size naturally waits for the sizes of both children. That is a post-order dependency: `size(node) = 1 + size(left) + size(right)`.
+
+A general [depth-first-search reference](https://cp-algorithms.com/graph/depth-first-search.html) gives useful background on entry and exit ordering. On a graph, you also need visited-state handling because paths can reconverge or cycle.
+
+## An augmented answer needs maintenance {#augmentation}
+
+If each node stores its subtree size, you can use those sizes to find the key with a particular rank. But insertion, deletion and rotations must update the stored sizes correctly. A cached structural fact becomes another invariant to maintain.
+
+This is the same trade-off you saw with prefix sums: preparation makes a later question cheaper, while updates become more involved. The right structure depends on which operations happen often and which correctness claims you can keep simple.
+
+## Practice: find the second largest key {#practice}
+
+Would you sort every key first? How could you use the search-tree ordering instead?
+
+<details>
+<summary>Work through the cases</summary>
+
+The largest node is the rightmost one. If it has a left subtree, the second largest key is the maximum in that subtree. Otherwise, the second largest is its nearest ancestor for which it lies in the right subtree—in the ordinary rightmost walk, that is its parent.
+
+Handle trees with fewer than two keys explicitly. The traversal takes `O(h)` time, where `h` is height. It is logarithmic only when the tree’s shape supports that bound.
+
+</details>

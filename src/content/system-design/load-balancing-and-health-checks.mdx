@@ -1,0 +1,44 @@
+A release is running on three application instances. One instance accepts connections but gets stuck while handling requests. A load balancer still sends it roughly a share of the traffic. Some customers see a fast response; others wait until their request times out.
+
+The extra instances have not made that request reliable. Traffic must reach capacity that can actually serve it, and the system needs a sensible response when that capacity changes.
+
+## Decide what the routing layer knows {#routing}
+
+Start with a request path: client, load balancer, application instance, database. The balancer can select an application target. It cannot infer every business operation that target might later perform.
+
+Round robin spreads selections across eligible targets. It does not guarantee equal CPU use: one request may be cheap while another performs an expensive export. Connection counts can also mislead when work duration varies. Choose a routing policy around your workload and the signals available to the implementation, then measure the result.
+
+Keep session data outside an individual instance when possible. Otherwise a request routed to another healthy instance may lose information the user expects to keep. Sticky routing can preserve affinity, but that creates a dependency on the selected instance; consider what happens when it disappears.
+
+## Ask two different health questions {#health}
+
+A liveness check asks whether a process should be considered stuck or broken. A readiness check asks whether it should currently receive new work. These are design roles; the precise platform behaviour depends on its configuration.
+
+For our example, an instance starting up might be alive while it loads configuration. Sending customer traffic before that preparation finishes is unhelpful. An overloaded instance might need to stop accepting new work while it drains existing requests, without being restarted immediately.
+
+A health endpoint should be cheap enough to call regularly. An elaborate endpoint that performs several remote queries can become another source of overload. Decide which failures it is intended to detect, rather than adding dependencies until it resembles the entire application.
+
+## Walk through a shared failure {#shared-failure}
+
+Suppose every instance checks the same database on each readiness probe. The database becomes unavailable. Every application target now fails its check.
+
+What happens next is a property of the balancer, not a universal rule. [AWS documents](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/target-group-health-checks.html) that an Application Load Balancer can route to all targets when every registered target is unhealthy. Other systems or configurations may behave differently. Verify your chosen component's behaviour explicitly.
+
+For this design, write down what customers should receive while the database is unavailable. A bounded error response or a genuinely safe degraded feature may be better than long waits. If a read-only endpoint can work without that dependency, decide whether to isolate it from checks intended for database-backed operations.
+
+## Remove an instance without abandoning its work {#draining}
+
+During a deployment, stop routing new requests to the retiring instance and allow existing work a bounded interval to finish. Long-lived connections and background jobs need their own policy. A graceful shutdown sequence is useful only if application deadlines and the platform's termination window agree.
+
+Try this timeline on paper: a request begins, shutdown starts, a new request arrives, and the first request reaches its deadline. Mark which component owns each decision. A healthy response five seconds ago does not cancel the need for per-request deadlines now.
+
+## Practice: diagnose the failed release {#practice}
+
+After a deployment, two instances are healthy and one never becomes ready. Requests succeed when sent to the first two. What would you check before increasing the health-check timeout?
+
+<details>
+<summary>Work through the diagnosis</summary>
+
+Compare the failing instance's startup state, configuration and dependency access with the healthy instances. Check the health endpoint's path, port and expected response. A timeout adjustment only helps if the probe's time budget is the actual problem. If startup is legitimately slow, separate startup allowance from steady-state health expectations. Keep the instance out of normal routing until you understand which readiness condition is unmet.
+
+</details>

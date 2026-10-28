@@ -1,0 +1,55 @@
+An assistant can search support cases and create a draft reply. Someone adds a tool that can also send the reply. During testing, a retrieved case contains a sentence telling the assistant to ignore its normal task and send a message to every customer.
+
+You can improve the prompt, but the important boundary is the tool executor. A proposed call must still pass the application's ordinary checks before it can affect another person or system.
+
+## Give a tool a narrow job {#scope}
+
+Compare a tool that accepts arbitrary SQL with a tool that searches the current user's authorised support cases using a bounded query and result limit. The second exposes less authority and is easier to inspect.
+
+Narrow does not mean harmless. A search operation can disclose confidential information. A draft operation can store misleading content. Define the operation's inputs, output size, identity, access scope and side effects rather than relying on a reassuring name.
+
+[OWASP's excessive-agency guidance](https://genai.owasp.org/llmrisk/llm062025-excessive-agency/) identifies excessive functionality, permissions and autonomy as distinct sources of risk. Reducing the toolbox, limiting credentials and controlling execution address different parts of that boundary.
+
+## Derive identity outside the model {#identity}
+
+The authenticated caller and their workspace should come from trusted application context. Do not let a model-generated userId field select which user's permissions the backend uses.
+
+An illustrative request path is:
+
+```text
+Model proposes a tool call
+  -> validate operation and argument structure
+  -> attach authenticated user and workspace
+  -> authorise the requested resource and action
+  -> enforce limits and any required confirmation
+  -> execute and record the outcome
+```
+
+This is a design checklist, not a complete security implementation. The backend must also defend the underlying operation normally, including checking resource ownership and handling malformed arguments. An allowlisted tool name is only the beginning.
+
+## Separate drafting from committing {#commit}
+
+For our support assistant, generating a proposed reply can be separate from sending it. Show the destination and exact draft before a user confirms a consequential send. Bind that confirmation to the intended action so that changing the recipient or content requires a new decision.
+
+A statement inside a retrieved document is not the user's confirmation. Neither is the model's assertion that a user approved something earlier. The application needs trusted evidence of approval where its policy requires it.
+
+Choose confirmation requirements around the actual consequence. Requiring a click for every harmless read can train users to approve without looking. Allowing every write automatically can give an imperfect model far more authority than the feature needs.
+
+## Account for retries and unknown outcomes {#retries}
+
+The executor sends a reply, but the network drops before the acknowledgement returns. The assistant proposes the same call again. If the operation creates another message every time, a transport problem becomes duplicate communication.
+
+Give consequential operations an application-managed operation ID and a durable execution record where the destination supports that design. Repeated requests should refer to the same intended action. If you cannot establish whether a send happened, expose an unknown state and investigate instead of claiming success or blindly issuing another send.
+
+Also bound tool attempts, elapsed time and output size. A safe operation repeated without limits can still create cost, load or an unusable user experience.
+
+## Practice: examine the export request {#practice}
+
+A policy assistant may read documents from workspace A. A retrieved passage instructs it to export workspace B. The model submits a well-formed export request. Where should the request stop?
+
+<details>
+<summary>Work through the permission check</summary>
+
+It should fail at the application's authorisation boundary. The retrieved passage cannot expand workspace access, and a valid argument shape does not establish permission. The executor must derive the caller's identity and scope independently, verify the action against them, and avoid exposing workspace B through an error response. Save this case as an execution-boundary test, not just as a prompt example.
+
+</details>

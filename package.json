@@ -11,7 +11,13 @@
     "clear": "docusaurus clear",
     "serve": "docusaurus serve",
     "write-translations": "docusaurus write-translations",
-    "write-heading-ids": "docusaurus write-heading-ids"
+    "write-heading-ids": "docusaurus write-heading-ids",
+    "check:workbench": "node scripts/check-workbench.mjs",
+    "prebuild": "node scripts/build-content-index.mjs",
+    "prestart": "node scripts/build-content-index.mjs",
+    "content": "node scripts/build-content-index.mjs",
+    "check:content": "node scripts/check-content.mjs",
+    "check": "npm run check:workbench && npm run check:content"
   },
   "dependencies": {
     "@docusaurus/core": "^3.1.1",

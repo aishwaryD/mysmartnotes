@@ -1,0 +1,77 @@
+A request times out. The client retries. So does the API layer. So does a downstream client library. The database, already struggling, receives many more attempts for the same original request.
+
+Every layer is trying to be helpful. Together they are making recovery harder.
+
+A retry policy is part of a system’s load policy. It needs a reason, a limit and enough time left to be useful.
+
+## Start with the user’s remaining time {#deadlines}
+
+A timeout limits one wait. A deadline limits the overall operation. If a caller has 500 ms left, starting a fresh 2-second attempt ignores the only time budget that matters to that caller.
+
+Pass the remaining deadline through dependencies. Leave time to return a result and clean up. Where cancellation is supported, stop work that no longer has a caller waiting for it. Cancellation is not guaranteed to undo work that has already committed.
+
+Imagine a request with 400 ms remaining. The next attempt may use 150 ms, backoff may use 100 ms, and response handling may need 30 ms. That fits arithmetically. A third attempt with the same allowances does not. These illustrative numbers are a way to check a policy, not suggested defaults for every service.
+
+## Decide whether repeating the operation is safe {#safe-repeat}
+
+A network timeout tells you that the result did not arrive in time. It does not tell you that the server performed no work.
+
+For a read, repeating may mainly add load. For "create an order", repeating can create another order unless the API supports an idempotency contract. Reuse the same operation identity for retries of the same intended action.
+
+Retry transient failures that your service contract identifies as retryable. Validation failures, permission failures and a malformed request usually require a changed request, not another identical attempt. Respect a server’s retry guidance when it fits the overall deadline and your policy.
+
+## Count attempts at every layer {#amplification}
+
+Suppose three layers each allow three total attempts. In the worst case, one original request can cause `3 × 3 × 3 = 27` calls at the deepest dependency.
+
+Say **total attempts** when you mean total attempts. "Three retries" often means one initial attempt plus three more, which changes the arithmetic substantially.
+
+Assign retry ownership where possible. A layer with enough context about the complete operation can make a better decision than several independent libraries. [Amazon’s discussion of timeouts and retries](https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/) explains how retries can amplify overload and why backoff, limits and jitter are used together.
+
+## Spread retries without pretending randomness is a cure {#jitter}
+
+Exponential backoff increases the delay after repeated failures. A cap prevents it from growing indefinitely. Jitter varies the wait so that clients do not all wake up on the same boundary.
+
+One simple full-jitter schedule chooses a random delay from zero up to a capped exponential bound:
+
+```js
+function fullJitterDelay(attempt, baseMs, capMs, random = Math.random) {
+  const upper = Math.min(capMs, baseMs * 2 ** attempt);
+  return Math.floor(random() * upper);
+}
+```
+
+Here `attempt = 0` is the first retry delay, and the inputs are nonnegative bounded numbers chosen by the application. This function only samples a delay. It does not decide whether to retry, enforce a deadline, cancel an in-flight call or implement an idempotency contract.
+
+[The AWS retry-with-backoff pattern](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/retry-backoff.html) is a useful reference for the surrounding decisions. Randomness can spread contention. It cannot create capacity or make an unsafe action safe.
+
+## Give the whole policy a stopping condition {#policy}
+
+A practical decision sequence looks like this:
+
+```text
+Was the failure classified as retryable?
+Is this operation safe to repeat under its contract?
+Are there attempts left?
+Is there enough deadline left for the delay and another useful attempt?
+Does the retry budget allow more work right now?
+If all answers are yes, wait and try again.
+Otherwise, return an explicit failure or a defined fallback.
+```
+
+A retry budget limits retry work relative to normal traffic or available capacity. It prevents every request from consuming its maximum attempts during a widespread outage. A circuit breaker is another possible control, but it introduces states and recovery behaviour that need careful testing.
+
+Choose a fallback only if it preserves the product’s meaning. An empty balance is not an acceptable substitute for an unavailable account balance. A clearly marked stale recommendation list might be acceptable for a different feature.
+
+## Test time, not only returned values {#practice}
+
+A client allows two total attempts, each with a 300 ms timeout, and a 200 ms delay between them. The caller’s total budget is 500 ms. Is that a coherent policy?
+
+<details>
+<summary>Work through the answer</summary>
+
+Not if both attempts are allowed their full timeout. The maximum planned duration is 800 ms before other overhead. The second attempt must use the remaining budget, or the policy must stop before starting it.
+
+Use a fake clock and deterministic random values when testing delays. Simulate a success that arrives after the caller stops waiting, a dependency that keeps failing, and a response that should never be retried. Check total attempts and elapsed time as well as the final error.
+
+</details>

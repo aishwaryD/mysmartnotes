@@ -1,0 +1,76 @@
+The demo answers three questions beautifully. Then a customer asks a fourth, and the system confidently invents a policy.
+
+A useful evaluation gives that fourth question a place to live before the next release. It should be capable of making you uncomfortable. If every case confirms what you already believe about the feature, the evaluation is doing very little work.
+
+We will use a policy assistant that must answer from permitted documents or acknowledge that the evidence is insufficient.
+
+## Turn the promise into observable checks {#contract}
+
+Start with the feature’s contract. A passing answer should address the question, use applicable evidence, cite support correctly, respect permissions and handle missing information honestly.
+
+Some checks are mechanical. Did the output match the schema? Were cited IDs present in the supplied set? Did the system call a forbidden tool? Other checks require judgment: does the passage really support the claim, and is the answer useful to the person asking?
+
+[Anthropic’s evaluation guide](https://www.anthropic.com/research/demystifying-evals-for-ai-agents) discusses code-based, model-based and human graders. The important design choice is to use a checker suited to each property and understand what it cannot establish.
+
+## Make the case more useful than a question {#cases}
+
+A case should include the input, authorised evidence or environment, expected behaviour, and a reason it matters. Keep the conditions needed to reproduce it.
+
+```json
+{
+  "id": "return-shipping-not-specified",
+  "question": "Do you pay for return shipping?",
+  "sourceIds": ["returns-v3"],
+  "expected": "Say the supplied evidence does not specify this.",
+  "slice": "insufficient-evidence"
+}
+```
+
+This is an authored fixture, not a claim about a real retailer. It tests an important behaviour: refusing to fill a policy gap with a plausible guess.
+
+Build cases from representative user needs and observed failures. Include ordinary questions too. An evaluation consisting only of traps can miss a release that is safe but routinely unhelpful.
+
+## Keep failure slices visible {#slices}
+
+Imagine twenty cases. Sixteen ordinary questions pass. Four permission-boundary cases fail. An 80% overall score makes the failure look smaller than it is.
+
+Useful slices for this feature include answerable questions, missing evidence, conflicting versions, irrelevant retrieved passages, access boundaries and instructions embedded in source text. Set release criteria for important slices before looking at the new version’s score.
+
+A permission failure deserves its own criterion because the harm is different from an awkward sentence. [OWASP’s excessive-agency reference](https://genai.owasp.org/llmrisk/llm062025-excessive-agency/) is useful when deciding which action and permission boundaries must be tested independently of answer quality.
+
+## Do not ask a grader to read your mind {#grading}
+
+Give a human or model grader the task, evidence and a concrete rubric. "Is this good?" invites inconsistent judgments. "Does every policy claim follow from these passages, and does the answer explicitly leave unsupported shipping costs unresolved?" is much easier to inspect.
+
+Calibrate model-based grading against human-reviewed examples. Include a valid concise answer, a valid differently worded answer, a polished unsupported answer and an answer that quotes evidence without resolving the question.
+
+A deterministic checker can verify that a source ID exists. It cannot prove support merely by finding the ID in a string. Avoid turning an easy-to-automate proxy into the definition of correctness.
+
+## Measure repeatability honestly {#repeatability}
+
+A model-backed system can produce different results on repeated runs. Record the model version, instructions, tool configuration, evidence snapshot and relevant generation settings. Repeat important cases and report how often they pass.
+
+Do not treat several runs as independent just because they have different run IDs. Shared caches, leaked state, identical hidden failures or a fixed bad retrieval result can correlate outcomes.
+
+Keep a held-out set for release decisions. If you repeatedly tune against the same examples, improvements may reflect familiarity with those cases rather than a more general ability to answer new questions.
+
+## Inspect failures before changing the prompt {#diagnosis}
+
+For every failed case, identify the earliest wrong boundary. Missing document? Permission filter? Passage selection? Output parsing? Unsupported inference? Tool execution?
+
+A retrieval regression should not be patched by teaching the final answer to guess more confidently. A flaky environment should not be mistaken for a model-quality regression. Keep those categories separate in your failure notes.
+
+For an agent, inspect the final application state as well as the transcript. "I saved the report" is not a passing result if the report is missing.
+
+## Practice: make the release decision {#practice}
+
+Version B improves ordinary answers from 85% to 95%, but lowers insufficient-evidence handling from 100% to 60%. What do you need before deciding to release it?
+
+<details>
+<summary>Work through the decision</summary>
+
+Inspect the changed cases, the number of trials and the severity of the failures. Check whether the comparison used the same evidence and conditions. Apply the slice-specific release criteria you agreed in advance.
+
+If unsupported policy promises are unacceptable, a higher ordinary-answer average does not override that requirement. Keep the improvement, investigate the regression and rerun the full release set after the fix. A useful evaluation helps you make that decision without being distracted by a more attractive single number.
+
+</details>

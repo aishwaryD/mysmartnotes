@@ -1,0 +1,79 @@
+A list of support tickets is already in arrival order. You sort it by priority. Within the same priority, should the older ticket remain first?
+
+If the answer is yes, you care about **stability**: equal-key elements keep their original relative order. Sorting is therefore about more than making adjacent keys look tidy. It also decides which parts of the existing order survive.
+
+Merge sort is a useful way to make those decisions visible.
+
+## Split the task into smaller promises {#divide}
+
+A list with zero or one element is already sorted. For a longer list, split it into two parts, sort each part, and merge the sorted results.
+
+The recursive calls promise to return sorted runs. The merge only needs to compare the next available item from each run. Whichever is smaller must be the next item in the combined result.
+
+[Open Data Structures’ sorting chapter](https://opendatastructures.org/ods-python/11_1_Comparison_Based_Sorti.html) presents comparison-based sorting and merge sort. The implementation below is a deliberately readable JavaScript version of the standard algorithm that returns a new array.
+
+## Let equal keys keep their place {#implementation}
+
+```js
+function mergeSort(values, compare = (a, b) => a - b) {
+  if (values.length <= 1) return values.slice();
+  const middle = Math.floor(values.length / 2);
+  const left = mergeSort(values.slice(0, middle), compare);
+  const right = mergeSort(values.slice(middle), compare);
+  const result = [];
+  let i = 0;
+  let j = 0;
+
+  while (i < left.length && j < right.length) {
+    if (compare(left[i], right[j]) <= 0) {
+      result.push(left[i]);
+      i += 1;
+    } else {
+      result.push(right[j]);
+      j += 1;
+    }
+  }
+  while (i < left.length) result.push(left[i++]);
+  while (j < right.length) result.push(right[j++]);
+  return result;
+}
+```
+
+The default comparator is for finite numbers. For records, pass a comparator such as `(a, b) => a.priority - b.priority`. The comparator should be consistent and define the ordering you intend; a function that changes its mind during the sort undermines the algorithm’s assumptions.
+
+The `<= 0` is important. Equal keys take the left item first. Since the left run came earlier in the original array, that choice preserves relative order across the split.
+
+## Walk through a tie {#stability}
+
+Suppose the input is `A:2, B:1, C:2, D:1`, where the letter identifies the ticket and the number is its priority.
+
+The sorted result should be `B:1, D:1, A:2, C:2`. B stays before D, and A stays before C. If the merge took the right item first on equality, equal-priority records could swap relative order.
+
+Stability is useful when the original order already encodes something meaningful. Alternatively, define an explicit secondary key such as arrival time and a final unique ID. That can make the ordering reproducible even when the input order changes.
+
+## Count copying as well as comparisons {#complexity}
+
+At each recursion level, the total amount of merging work is linear in the number of items. There are logarithmically many levels, so the comparison and copying work is `O(n log n)` under constant-time comparisons.
+
+This version also creates slices and result arrays. Peak additional storage is `O(n)` plus a logarithmic recursion stack under the standard live-allocation model, while total allocation and copy volume across the run is `O(n log n)`. Garbage-collection behaviour can affect actual memory and timing observations.
+
+An implementation using one reusable buffer can reduce allocation churn. An in-place variant is a different engineering exercise with additional complexity. Choose the version whose trade-offs match the application rather than calling every merge sort "the same" in a benchmark.
+
+## Sorting can be preparation for another task {#trade-offs}
+
+Sorting makes duplicate detection, two-pointer scans and binary searches easier. Include the preparation cost when comparing complete solutions.
+
+For one membership question over an unsorted list, a scan may be preferable. For many queries over a stable collection, sorting once can be worthwhile. If input arrives continuously and queries interleave with updates, maintaining an ordered structure might fit better.
+
+## Practice: test more than ascending values {#practice}
+
+What should a test suite check for this sort?
+
+<details>
+<summary>Work through the properties</summary>
+
+Check that output is ordered under the comparator, contains exactly the input items with the same multiplicities, preserves the relative order of equal keys, and leaves the input array order unchanged. Use empty, singleton, already sorted, reverse sorted and repeated-key inputs.
+
+A test that checks only numeric order can miss lost records and broken stability. The properties should reflect the actual contract, not just the most visible result.
+
+</details>

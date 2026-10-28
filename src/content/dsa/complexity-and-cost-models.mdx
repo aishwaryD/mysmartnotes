@@ -1,0 +1,72 @@
+Two functions both finish instantly on a list of ten items. One will still feel instant on ten thousand. The other might turn a page interaction into a noticeable pause.
+
+Algorithm analysis is a way to ask how work grows before you have every production input in front of you. It becomes useful when you are clear about the input size, the operation you are counting and the assumptions underneath it.
+
+## Pick the size that describes the problem {#input-size}
+
+For a list, `n` might be its length. For a graph, you usually need both the number of vertices `V` and edges `E`. For a coin-change problem, the numeric target amount matters too.
+
+Do not hide independent quantities inside one convenient letter. Comparing every item in a list of size `n` with every item in another list of size `m` takes `O(nm)` comparisons. Calling it `O(n²)` silently assumes a relationship between the two inputs.
+
+Similarly, an integer’s value and the number of bits needed to represent it are different sizes. A loop that runs once per unit of a huge amount can be expensive even when that amount is written with very few characters.
+
+## Count across the complete execution {#count-work}
+
+Consider finding common values in two sorted numeric arrays:
+
+```js
+function intersectionSorted(a, b) {
+  let i = 0;
+  let j = 0;
+  const result = [];
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) {
+      result.push(a[i]);
+      i += 1;
+      j += 1;
+    } else if (a[i] < b[j]) {
+      i += 1;
+    } else {
+      j += 1;
+    }
+  }
+  return result;
+}
+```
+
+Each iteration advances at least one pointer. Neither pointer goes backwards. The total number of advances is at most `a.length + b.length`, so the scan is linear in the combined input length under constant-time comparison and array-access assumptions.
+
+The function preserves shared multiplicity: `[2, 2]` and `[2]` produce `[2]`. If you want a set intersection, deduplicate the result or change the contract. Complexity analysis does not settle what the function is supposed to return.
+
+## Big O does not tell you milliseconds {#notation}
+
+Big O describes an asymptotic upper bound. A tight bound is often written with Theta. Neither gives you a measured latency, a processor model, cache behaviour or a useful input threshold on its own.
+
+An `O(n log n)` implementation with large constants can lose to a simple quadratic algorithm on tiny inputs. That does not invalidate the analysis. It means growth rates and measurements answer different questions.
+
+Worst-case, average-case and expected bounds also describe different promises. An expected bound may rely on randomisation or a distribution assumption. Say which one you mean.
+
+## Look inside convenient operations {#hidden-costs}
+
+A line that creates a slice may copy many elements. Concatenation may allocate and copy. Comparing long strings can inspect more than one character. A recursive function can use significant stack space even when it allocates no explicit array.
+
+[MIT’s cost-model reading](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/pages/readings/python-cost-model/) makes this point through Python primitives. Apply the habit in whichever language you use: inspect the operation’s contract and implementation model before treating it as one unit of work.
+
+Keep output space separate when useful. Returning all `k` results necessarily uses space for those results; that is different from auxiliary scratch memory used to compute them.
+
+## Amortised work needs a sequence {#amortised}
+
+A dynamically growing array can occasionally allocate a larger backing store and copy its contents. One append can therefore be expensive. With geometric capacity growth, those occasional copies can be spread across the sequence, giving constant amortised append cost under the usual model.
+
+Amortised does not mean random or average over lucky inputs. It is an accounting claim about a sequence of operations. It also does not mean every individual operation has the same latency, which matters for systems with strict pause requirements.
+
+## Practice: find the reset {#practice}
+
+A nested loop advances `right` from 0 to `n - 1`, while an inner loop advances `left` only forwards. What change could make the work quadratic?
+
+<details>
+<summary>Work through the difference</summary>
+
+Resetting `left` to zero for every `right` can make the inner work repeat. Advancing a shared pointer once across the input is different from rescanning a growing prefix for every position. Write a table of pointer values for a small input and count the movements; it usually exposes the hidden reset immediately.
+
+</details>

@@ -1,0 +1,78 @@
+A model can choose its next action. That does not mean your feature needs to let it choose every next action.
+
+Consider two tasks. One extracts an invoice total from a document and validates the result. The other investigates an unfamiliar build failure, reads logs, inspects files and chooses what to examine next. The first has a fairly predictable path. The second benefits from adapting to intermediate results.
+
+Use that difference to choose the architecture, rather than starting with an agent framework and looking for work to give it.
+
+## Keep the predictable path explicit {#workflow}
+
+A fixed workflow might retrieve a permitted document, ask for a structured extraction, validate the result and show it for review. Code decides the sequence. The model helps with the part that is difficult to express as ordinary rules.
+
+A model-directed agent loop lets the model choose among available actions as the task unfolds. [Anthropic’s effective-agents article](https://www.anthropic.com/research/building-effective-agents) makes this distinction between predefined workflows and model-directed processes.
+
+The label matters less than the consequences. Dynamic choices increase the range of useful behaviour, but also the number of paths you must inspect, bound and evaluate.
+
+## Spend autonomy on a real uncertainty {#decision}
+
+Ask what the application does not know in advance. If every support question follows the same three stages, a fixed flow may be enough. If the next useful investigation depends on what the previous result reveals, a loop may earn its cost.
+
+Give the loop a narrow goal and useful observations. "Fix everything" is a poor task contract. "Investigate why the parser test fails, propose a patch, and verify the relevant tests" provides a clearer boundary.
+
+The agent should receive real tool results. A model’s statement that a test passed is not equivalent to an observed successful test run. Likewise, a proposed file edit and an applied file edit are different states.
+
+## Tools are application APIs {#tools}
+
+A tool needs a clear name, an argument contract, useful errors and a defined side effect. Avoid one broad tool that accepts arbitrary commands when a narrower read-only operation will do.
+
+For a policy assistant, `searchPolicies(query, scope)` can be read-only. `approveRefund(accountId, amount)` changes the world and needs stronger authorisation. The fact that both are function calls should not make them equally available.
+
+[OWASP’s excessive-agency guidance](https://genai.owasp.org/llmrisk/llm062025-excessive-agency/) discusses risks created by excessive functionality, permissions and autonomy. Enforce the allowed user, resource scope and side-effect policy in application code. A prompt asking the model to "be careful" is not a replacement.
+
+## A bounded loop has an exit {#loop}
+
+Here is architecture pseudocode, not an SDK-specific implementation:
+
+```text
+for each step within the operation's deadline and step budget:
+  ask the model for a final answer or one permitted tool request
+  validate the returned structure
+  if final answer: validate it and stop
+  if tool request:
+    validate arguments, identity and resource scope
+    obtain any required user approval for the actual side effect
+    execute through a bounded application API
+    record the result and return an observation
+if the budget is exhausted:
+  stop explicitly and report the incomplete state
+```
+
+A maximum number of steps does not protect you from one tool call that never returns. Tools need their own timeouts and resource limits. An overall deadline keeps a series of individually reasonable calls from running indefinitely.
+
+When a task stops halfway through, preserve enough state to explain what happened. "Incomplete" is a better outcome than inventing a successful ending.
+
+## Treat side effects as operations {#side-effects}
+
+If a send, purchase or deployment can be repeated after a retry, give it an operation identity and durable status. Recheck the arguments at execution time; a previous approval for one action should not authorise a materially changed action.
+
+Separate drafts from committed actions in the user experience. The application should be able to show which changes are proposed, which were applied and which failed. This is ordinary product engineering, not an optional layer of polish.
+
+For a local coding assistant, a restricted working directory and reviewable patch can make mistakes easier to recover from. For a production operator, the controls need to reflect the real systems and consequences involved.
+
+## Evaluate the route without prescribing every footstep {#evaluation}
+
+Some tasks admit several valid investigation paths. Requiring an exact tool-call sequence can reject a good solution for taking a sensible shortcut.
+
+Check the required outcome and critical constraints: the bug is fixed, relevant tests pass, unrelated files stay untouched, and no forbidden external action occurred. Inspect the transcript to diagnose failures and inefficient behaviour, without making one preferred transcript the only acceptable answer.
+
+## Practice: choose the architecture {#practice}
+
+You need to classify a support ticket, retrieve two relevant policies and draft a reply for a human. Where would you begin?
+
+<details>
+<summary>Work through a modest first design</summary>
+
+Start with an explicit workflow: classify, retrieve within authorised scope, draft with source IDs, validate, and present for human review. Measure where it fails. Add adaptive search only if the fixed retrieval step consistently needs additional investigation.
+
+You can still use a model at several stages. A workflow does not mean "no AI"; it means the application owns the sequence until a demonstrated need justifies more freedom.
+
+</details>

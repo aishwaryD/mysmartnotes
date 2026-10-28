@@ -1,0 +1,83 @@
+A worker receives a message: publish the export for job 814. It writes the completed status to the database, then crashes before acknowledging the message.
+
+Did the job happen? Yes. Does the broker know that? Not necessarily.
+
+When another worker receives the message, it needs to handle that ambiguity. Reliable messaging is easier to reason about once you stop treating "delivered", "processed" and "acknowledged" as interchangeable words.
+
+## There are several boundaries {#boundaries}
+
+A publisher sends a message to a broker. The broker may confirm accepting it. Later, a consumer receives it, performs work and acknowledges it.
+
+A publisher confirmation does not mean a consumer has completed the business operation. A consumer acknowledgement does not automatically make an external payment, email or database transaction atomic with the broker. [RabbitMQ’s acknowledgements guide](https://www.rabbitmq.com/docs/confirms) makes the producer and consumer responsibilities explicit.
+
+For a consumer that acknowledges only after durable completion, a crash before that acknowledgement can cause redelivery. That is expected behaviour, not evidence that the queue is broken.
+
+## Give the operation an identity {#identity}
+
+A stable operation ID lets the consumer recognise that two deliveries describe the same intended effect. It should survive retries of the same request. Generating a new random ID on every attempt defeats that purpose.
+
+For the export example, use an event ID such as `export-completed:814:v1`. If the business can legitimately perform another version of the export, that needs a distinct identity.
+
+Distinguish "same event delivered again" from "same-looking action intentionally requested again". A customer may send two identical messages on purpose. Content equality alone is not always a safe idempotency key.
+
+## Commit the marker with the effect {#atomic-consumer}
+
+Suppose the business effect is entirely inside one transactional database. A consumer can keep a processed-events table with a unique event ID and write both the marker and the business change in one transaction.
+
+```text
+begin database transaction
+
+insert event_id into processed_events
+  using a unique constraint and conflict handling
+
+if this transaction did not insert a new marker:
+  finish without repeating the business effect
+else:
+  apply the business change in this same transaction
+
+commit database transaction
+acknowledge the message
+```
+
+The unique constraint matters when two workers race. A separate "check whether it exists" followed by an unprotected insert is not enough. The marker must not commit while the associated effect rolls back.
+
+[PostgreSQL’s isolation documentation](https://www.postgresql.org/docs/18/transaction-iso.html) is useful background for reasoning about concurrent transactions. Exact conflict behaviour depends on your database, isolation level and statement design; test the concurrent path, not only sequential retries.
+
+## The external side effect is still external {#external-effects}
+
+Now change the task: send an email, then mark the event as processed. If the email provider accepts the email and the worker crashes before recording the marker, retrying can send it twice.
+
+Moving the marker before the send creates the opposite problem: a crash can leave a recorded success with no email sent. A local transaction cannot roll back an email provider’s action.
+
+Use provider-supported idempotency where available, keep durable operation state, and design reconciliation for uncertain outcomes. If the downstream system cannot deduplicate, acknowledge the limitation rather than claiming end-to-end exactly-once effects.
+
+A delivery guarantee belongs to a defined boundary. It is not a magic property that flows through every API your consumer calls.
+
+## Avoid the producer’s dual-write gap {#outbox}
+
+There is a similar problem when a producer updates its database and then publishes an event. A crash between those steps can leave the data changed with no notification.
+
+The transactional outbox stores the business update and an event record in the same database transaction. A separate relay publishes committed outbox records and tracks its progress. [AWS’s outbox guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) explains the dual-write problem and notes that duplicates can still occur.
+
+The relay can crash after publishing but before marking the record sent. Consumers therefore still need idempotency. The outbox closes one consistency gap; it does not erase all the others.
+
+## Operate the queue as a workload {#operations}
+
+Track oldest-message age, arrival rate, completion rate, retry rate and dead-letter counts. Depth alone is incomplete: one slow old message and a large set of fresh messages are different incidents.
+
+Set bounded retries. A malformed message that will never succeed should not circulate forever and consume every worker. Keep enough diagnostic information to repair or replay it without exposing private payloads unnecessarily.
+
+For ordered business state, consider version numbers and stale-event handling. Parallel delivery can make completion order differ from publish order. An idempotent operation can still be incorrect if an older event overwrites a newer state.
+
+## Practice: test the crash windows {#practice}
+
+Where would you deliberately stop a worker to test this design?
+
+<details>
+<summary>Work through the test plan</summary>
+
+Stop it before the database transaction, during the transaction, after commit but before acknowledgement, and after any external provider accepts a request but before the local result is stored. Then redeliver the same operation ID concurrently as well as sequentially.
+
+Check the business effect, the processed marker and the recovery behaviour. Counting acknowledgements alone will not tell you whether a customer was charged twice or an export was silently skipped.
+
+</details>

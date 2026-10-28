@@ -1,0 +1,83 @@
+A slow endpoint does not automatically need a cache. Sometimes it needs to stop asking the database an unnecessarily expensive question.
+
+Imagine a service that lists a customer’s latest published notes. The query filters by customer and status, sorts by creation time, and returns twenty rows. Start there. "We need an index" becomes useful only when you can finish the sentence: an index for **this access pattern**.
+
+## Put the query on the page {#query}
+
+Here is a compact PostgreSQL example. The customer ID comes from authorised application context, not an untrusted claim in the request body.
+
+```sql
+CREATE TABLE notes (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  customer_id bigint NOT NULL,
+  status text NOT NULL,
+  title text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX notes_customer_status_created_idx
+  ON notes (customer_id, status, created_at DESC, id DESC);
+
+SELECT id, title, created_at
+FROM notes
+WHERE customer_id = $1 AND status = 'published'
+ORDER BY created_at DESC, id DESC
+LIMIT 20;
+```
+
+The equality conditions constrain the leading columns. The remaining index order matches the requested ordering. The final `id` gives equal timestamps a deterministic order.
+
+[PostgreSQL’s multicolumn-index documentation](https://www.postgresql.org/docs/18/indexes-multicolumn.html) describes how leading equality constraints and subsequent range conditions affect a B-tree scan. An index is not a universal speed boost; its column order and the actual predicate matter.
+
+The query may still need table visits to fetch `title`. An index-only scan has additional requirements, including visibility information; do not promise one just because the filter is indexed.
+
+## Ask the planner what it chose {#explain}
+
+Run the read query with `EXPLAIN (ANALYZE, BUFFERS)` on representative data in a suitable environment. `ANALYZE` executes the statement. That is particularly important to remember before applying it to writes.
+
+Look at estimated versus actual rows, scan type, sorting, buffer activity and repeated work inside loops. An underestimated row count can lead to a poor join strategy. A sequential scan on a tiny table can be entirely sensible.
+
+The cost values in an execution plan are planner estimates in abstract units, not milliseconds. [The PostgreSQL EXPLAIN guide](https://www.postgresql.org/docs/18/using-explain.html) explains the distinction between estimates and actual execution observations.
+
+Also account for index maintenance. More indexes consume storage and add work to inserts, updates and deletes. Keep an index because the workload justifies it, not because it improved one isolated screenshot.
+
+## Introduce a cache with a freshness contract {#cache-contract}
+
+Suppose the indexed query is still called extremely often. A cache might now help. State what "correct enough" means before choosing its lifetime.
+
+For a public list of recently published notes, a short period of staleness might be acceptable. For an access-control decision, an old permission can be unacceptable. These should not share a casual "cache everything for a minute" policy.
+
+A cache-aside read checks the cache, loads the database on a miss, and stores the result. A common write path commits the database change and invalidates the affected cache key. [Microsoft’s cache-aside guidance](https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside) explains this arrangement and its consistency limitations.
+
+## Walk through the stale-fill race {#race}
+
+Even a reasonable invalidation order has a race:
+
+1. Reader A misses the cache and reads version 7 from the database.
+2. Writer B commits version 8 and deletes the cache key.
+3. Reader A finishes later and fills the cache with version 7.
+
+The key is now stale even though the writer invalidated it after committing. A sixty-second TTL limits how long that newly inserted entry survives. It does not prove that the observation used to fill it was only moments old.
+
+Possible responses include version-aware cache writes, versioned keys, change-driven invalidation, accepting a documented stale window, or bypassing the cache for sensitive reads. Each changes operational cost and failure behaviour. Pick one based on the promise the product must keep.
+
+## Protect the origin during a miss storm {#stampede}
+
+If a popular key expires and hundreds of callers miss together, all of them may issue the same expensive database query. This is often called a cache stampede.
+
+A per-key single-flight mechanism can let one request fetch while others await that result within a bounded time. Expiry jitter can spread the timing of many keys, although it does not prevent a stampede for one very popular key. Serving stale data while refreshing can help when the freshness contract allows it.
+
+Always decide what happens when the cache is unavailable. "Fall back to the database" is only safe if the database can handle the resulting traffic or the application limits it.
+
+## Practice: choose the read policy {#practice}
+
+A customer loses access to a private workspace. Which read should you allow to bypass a cached public-summary endpoint?
+
+<details>
+<summary>Work through the decision</summary>
+
+Authorisation should use a source and consistency policy that satisfy the revocation requirement. A cached summary must not become a way to retrieve private data after access is revoked. Recheck trusted permissions at the protected boundary and ensure cache keys and payloads do not mix customers or access scopes.
+
+The right cache lifetime for a public title list tells you almost nothing about the right lifetime for a permission. Treat freshness as a property of the specific decision.
+
+</details>

@@ -1,0 +1,54 @@
+A document assistant works well with a short policy. Someone uploads a long handbook and a lengthy conversation history. Responses become slower, evidence is harder to inspect, and a few requests exceed their allowed duration.
+
+Increasing every limit may make the next demonstration succeed. It also makes the system's worst case harder to control. A useful budget names the work allowed and the behaviour when that work is not enough.
+
+## Name the resources separately {#resources}
+
+A context limit is not the same as a user-visible deadline. A request can fit its context window and still make too many tool calls, wait too long on retrieval, or produce more text than the interface needs.
+
+For an illustrative policy feature, track input context, output allowance, tool attempts and elapsed time. Use the actual model's token accounting and interface limits when implementing these controls. Characters are not a dependable universal substitute for tokens, and provider-specific limits can change.
+
+[Anthropic's context-engineering article](https://www.anthropic.com/research/effective-context-engineering-for-ai-agents) argues for selecting useful information deliberately. The practical question here is which evidence and instructions this request needs, rather than how much unrelated material can fit.
+
+## Preserve meaning when reducing context {#selection}
+
+Suppose you retrieve a returns rule and its exception. Dropping the exception to meet a context allowance may make the remaining passage misleading. Truncating a JSON document in the middle can also destroy its structure.
+
+Reduce context along meaningful boundaries. Remove duplicate passages, filter by applicable version and permission, and keep the identifiers and headings needed to interpret the evidence. If adequate support still does not fit, change the retrieval or task design rather than presenting a partial policy as complete.
+
+Conversation history needs the same judgement. A summary can preserve useful decisions but lose exact wording or unresolved conditions. Keep a way to recover original records when the current task depends on those details.
+
+## Bound the whole attempt {#deadline}
+
+Imagine a five-second product budget for a short answer. That number is an assumption for this example. Retrieval, tool execution, generation and validation all consume part of it. Separate time to first visible text from time to a validated final answer.
+
+Streaming can make activity visible earlier. It does not prove that the final answer will meet the evidence contract. Be careful about displaying claims as settled before later validation can reject them. A useful interface distinguishes work in progress from a final supported result.
+
+A retry must fit the remaining deadline and have a reason to help. Repeating a request with the same unavailable evidence is different from retrying a temporary transport failure. Keep retry ownership and tool-attempt limits in application code.
+
+## Walk through a deadline {#worked-deadline}
+
+Use a hypothetical 5,000 ms end-to-end deadline. At 900 ms, retrieval finishes. Another 100 ms selects and prepares the evidence. Generation starts at 1,000 ms. The application reserves 300 ms for validation and 200 ms for returning the final result, leaving at most 3,500 ms for that generation attempt.
+
+Suppose the attempt fails after using 3,000 ms. The clock now reads 4,000 ms. There are only 500 ms left for another attempt after preserving the final 500 ms reserve. Starting another 3,500 ms call would violate the overall policy even though the configured per-call timeout has not changed.
+
+The application can attempt a smaller, bounded recovery only if it can plausibly finish and validate within that remaining allowance. Otherwise it should stop. The reserve is a planning choice for this example, not a guaranteed execution time: if an earlier stage overruns, recompute the remaining budget rather than borrowing silently from the user deadline.
+
+## Define a result for the budget boundary {#fallback}
+
+What should the customer see if time runs out after retrieval but before answer validation? One option is a clear incomplete status with a way to retry. If authorised source links are already available, the interface might offer those without claiming a validated answer was produced.
+
+Choose that behaviour explicitly. Do not turn a timeout into a successful-looking empty answer or fill the gap with a guess. If the system performed a side effect before timing out, preserve its execution state so another attempt does not repeat it blindly.
+
+Measure completion rate, latency, resource use and answer quality together. A cheaper request that fails the important evidence cases is not necessarily an improvement. Compare changes on representative cases and inspect the failure categories behind an aggregate number.
+
+## Practice: trim the request {#practice}
+
+A request includes five duplicate policy passages, an irrelevant old conversation, a current rule and its qualifying exception. It exceeds the context allowance. What would you remove first, and what outcome would you allow if adequate evidence still cannot fit?
+
+<details>
+<summary>Work through the budget</summary>
+
+Remove duplication and irrelevant history while preserving the rule, its qualification, source identifiers and applicable version. Recheck the token count using the actual interface. If the remaining evidence cannot support an answer within the enforced budget, use an explicit incomplete or insufficient-evidence outcome. Record which budget was reached so that the next investigation can distinguish retrieval quality, context selection and generation duration.
+
+</details>

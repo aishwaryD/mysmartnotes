@@ -1,0 +1,61 @@
+A customer changes their display name. The application confirms the update, redirects to the profile page, and shows the old name. Refreshing a moment later makes the new name appear.
+
+The update was committed. The redirect read from a replica that had not caught up. This is a useful starting point for replication: ask which machine acknowledged the write, and which version the next reader is allowed to observe.
+
+## Trace one acknowledged write {#write-path}
+
+Imagine a primary and one asynchronous replica. The primary commits profile version 12 and acknowledges the request. The replica still exposes version 11. Later it receives and applies the changes needed to expose version 12.
+
+There are several boundaries here: a change can be generated, transmitted, received, made durable and applied. Do not compress all of those events into "replicated". Which boundary matters depends on whether you are discussing durable recovery or what a query can currently see.
+
+[PostgreSQL's standby documentation](https://www.postgresql.org/docs/current/warm-standby.html) describes streaming replication and acknowledgement options. Its details illustrate why naming the configured replication mode matters more than saying that a system has replicas.
+
+## Choose a read policy for the operation {#reads}
+
+For a public activity feed, a small, documented delay might be acceptable. Immediately after editing a private profile, the same delay can look like a failed save. Revoked permissions are another case again: an old permission record may violate the intended access rule.
+
+One simple policy is to send a user's immediate post-write reads to the primary. Another is to carry a version marker and wait for a chosen replica to reach the required position, subject to a timeout. Both add routing and failure decisions. A version marker only helps if the implementation knows how to interpret and enforce it.
+
+Avoid a magical "read your writes" label without stating its scope. Does it hold for one request, one session, one account across devices, or every reader? Those promises require different coordination.
+
+## Decide what a successful commit promises {#acknowledgement}
+
+An asynchronous acknowledgement can arrive before a standby has the write. If the primary is permanently lost at that point, promoting a lagging standby can lose an update the customer already saw succeed.
+
+Waiting for a configured standby acknowledgement changes that risk boundary, but adds latency and can reduce write availability when the required standby is unavailable. Even "synchronous" needs a precise definition: acknowledge receipt, durable storage, or application? Consult the chosen database's settings rather than assuming these are equivalent.
+
+For our profile service, write the requirement in observable terms. For example: after success, a later profile read in the same session must not show an older version. That is different from a promise about survival after a regional failure.
+
+## Separate a surviving write from a visible write {#worked-timeline}
+
+Here is an invented timeline for profile version 12:
+
+| Time | Event |
+| --- | --- |
+| 0 ms | Primary durably commits version 12 |
+| 4 ms | Standby receives the change |
+| 7 ms | Standby durably records the change |
+| 18 ms | Standby applies it so queries can observe version 12 |
+
+If success waits for durable standby storage at 7 ms, an immediate standby read at 10 ms can still expose version 11. The extra durable copy and the read's visible state answer different questions. An acknowledgement policy that waits for replay would move the success boundary again; availability and latency would change with it.
+
+Do not turn the table into a blanket claim that every failure after 7 ms is harmless. Recovery still depends on which standby is promoted, which storage survives, and how the database enforces its configured guarantee. Check those conditions in a failover test.
+
+## Promotion needs an ownership decision {#failover}
+
+Suppose the network separates the primary from its monitoring system. A standby is promoted, but the old primary is still alive. If both accept writes independently, "we have a new primary" has not established safe ownership.
+
+A failover plan needs a way to prevent the old writer from continuing with conflicting authority. The mechanism may involve fencing, a coordination service or the database's own supported failover controls. Also plan how clients learn the new address and how failed requests are retried without duplicating business operations.
+
+A replica is not a substitute for a recovery plan. Replication can carry an accidental deletion to the other machine. Backups, retained history and tested restoration address a different problem.
+
+## Practice: explain the disappearing update {#practice}
+
+An asynchronous primary confirms an update and immediately fails. A replica is promoted without that update. The application team says the acknowledged write should be present because replication was enabled. What is missing from that argument?
+
+<details>
+<summary>Work through the guarantee</summary>
+
+It does not specify which acknowledgement boundary was required before success. The replica might not have received or applied the update. Determine the actual configured mode and promotion policy, then compare them with the promised recovery objective. If the product requires a stronger guarantee, change the design or the promise; a successful response from the old primary alone cannot prove the promoted replica contains that write.
+
+</details>

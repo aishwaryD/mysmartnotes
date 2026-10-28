@@ -1,7 +1,4 @@
 import React from 'react';
-import ComingSoonPage from '@site/src/components/ComingSoonPage';
+import SubjectIntroduction from '@site/src/components/SubjectIntroduction';
 import {getPath} from '@site/src/data/paths';
-
-export default function AiNativeEngineeringPage() {
-  return <ComingSoonPage path={getPath('ai-native-engineering')} />;
-}
+export default function Page(){return <SubjectIntroduction subject={getPath('ai-native-engineering')}/>;}

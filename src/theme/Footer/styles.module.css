@@ -1,0 +1,7 @@
+.footer{width:100%;padding:0 40px;max-width:1280px;margin:25px auto 0}
+.inner{display:flex;align-items:center;justify-content:space-between;gap:20px;border-top:1px solid #333a36;padding:23px 0;color:#a5b1a9;font-size:12px}
+.brand{color:#bbc7bf;font-size:13px;font-weight:500}
+.brand:hover{color:var(--ifm-color-primary);text-decoration:none}
+.inner p{margin:0}
+@media(max-width:1000px){.footer{padding:0 24px}}
+@media(max-width:700px){.footer{padding:0 22px;margin-top:26px}.inner{flex-wrap:wrap;gap:12px}.inner p{order:3;flex-basis:100%}}

@@ -1,0 +1,95 @@
+You have a sorted list of release numbers. A customer reports a failure in release 24, and you want to find where that release would sit in the list. It might be present. It might appear several times. It might be missing entirely.
+
+These are slightly different questions, and a surprising number of binary-search bugs begin by treating them as the same one.
+
+Let’s answer one precise question: **what is the first index whose value is at least the target?** That index is called the **lower bound**. Once we have it, checking whether the target exists is easy.
+
+## Give the boundaries a job {#boundaries}
+
+For an array `a`, keep an interval `[lo, hi)`. The left endpoint is included; the right endpoint is excluded. At the beginning, `lo = 0` and `hi = a.length`.
+
+We maintain two facts:
+
+- Every index before `lo` contains a value smaller than the target.
+- Every index at or after `hi` contains a value at least as large as the target.
+
+The interval between them is the part we have not settled yet. Notice that neither endpoint has to point to an actual element. In an empty array, both are zero. If the target belongs after every value, both eventually become `a.length`.
+
+That is a useful design choice. We can represent "not found, but it would go here" without inventing a special array element.
+
+[The binary-search reference at CP-Algorithms](https://cp-algorithms.com/num_methods/binary_search.html) discusses the same broader technique: maintain a boundary between two ordered groups, and make the unresolved interval smaller at each step.
+
+## Make one comparison {#comparison}
+
+Suppose the array is `[3, 8, 12, 19, 24, 31, 37, 42]` and the target is `24`.
+
+The first midpoint is index 4. Its value is 24. For a membership search, we could stop. For a lower-bound search, we cannot: there might be another 24 to its left. Set `hi` to 4 and keep looking.
+
+If a midpoint contains 12, then that position and everything before it are too small. Set `lo` to `mid + 1`. If it contains 31, that position already belongs in the "large enough" group. Set `hi` to `mid`.
+
+The updates are different because the claims are different. One comparison rules out a position; the other establishes a possible answer.
+
+```js
+function lowerBound(a, target) {
+  let lo = 0;
+  let hi = a.length;
+
+  while (lo < hi) {
+    const mid = lo + Math.floor((hi - lo) / 2);
+    if (a[mid] < target) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+  return lo;
+}
+
+function findFirst(a, target) {
+  const index = lowerBound(a, target);
+  return index < a.length && a[index] === target ? index : -1;
+}
+```
+
+This example expects a numerically sorted array of finite numbers and a finite numeric target. A comparator-based version can support other ordered values. Values such as `NaN` need an explicit ordering policy before this algorithm makes sense.
+
+## Why the loop finishes {#proof}
+
+At every iteration, `mid` lies inside `[lo, hi)`. Setting `lo = mid + 1` removes at least one position. Setting `hi = mid` also removes at least one. The interval therefore shrinks until its endpoints meet.
+
+When `lo === hi`, there is no unsettled position left. Everything before the meeting point is too small; everything from it onwards is large enough. That is exactly the answer we asked for.
+
+This is the whole proof: establish the facts, preserve them, make progress, and explain what they mean at termination. Memorising the update lines without those four steps leaves you guessing whenever a problem changes slightly.
+
+## Count the work you actually do {#complexity}
+
+The unresolved interval is roughly halved each time, giving `O(log n)` comparisons for a nonempty array and constant auxiliary space. This assumes constant-time indexing and comparison. Searching a linked list does not inherit those costs merely because its values are sorted.
+
+If you sort an unsorted list just to run one search, count the sorting work too. For a single lookup, a linear scan might be the sensible choice. For many lookups against a stable sorted list, the preparation can pay for itself.
+
+An algorithm’s cost belongs to the whole task, not just its most impressive line.
+
+## Test the awkward cases {#edge-cases}
+
+| Array | Target | Lower bound | First match |
+| --- | --- | --- | --- |
+| `[]` | 7 | 0 | -1 |
+| `[4]` | 4 | 0 | 0 |
+| `[2, 4, 4, 9]` | 4 | 1 | 1 |
+| `[2, 4, 4, 9]` | 5 | 3 | -1 |
+| `[2, 4, 4, 9]` | 12 | 4 | -1 |
+
+Try the [binary-search experiment](#interactive-example) to watch a membership search discard candidates. It uses a closed interval instead of the half-open interval above. Both conventions work; mixing their updates is what causes trouble.
+
+## Take it one step further {#practice}
+
+Write `upperBound`: the first index whose value is strictly greater than the target. Then use the two boundaries to count occurrences without scanning the matching run.
+
+<details>
+<summary>Work through the answer</summary>
+
+For upper bound, move `lo` past `mid` when `a[mid] <= target`; otherwise move `hi` to `mid`. The invariant now divides "less than or equal" from "strictly greater". The number of occurrences is `upperBound(a, x) - lowerBound(a, x)`.
+
+For `[2, 4, 4, 9]` and target 4, the two boundaries are 1 and 3, so there are two matches. For a missing target, the boundaries coincide and the difference is zero.
+
+</details>

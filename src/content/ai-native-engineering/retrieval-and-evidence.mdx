@@ -1,0 +1,78 @@
+Your assistant gave the wrong answer. The immediate temptation is to change the prompt. First ask a more useful question: **where did the evidence path break?**
+
+Was the relevant document in the collection? Could this user access it? Did retrieval find the right passage? Did the passage survive reranking and truncation? Did the final answer use it faithfully?
+
+These are different failures. Treating all of them as "the model hallucinated" makes debugging unnecessarily vague.
+
+## Follow the evidence from storage to answer {#pipeline}
+
+A modest retrieval-backed assistant might use this path:
+
+```text
+question + trusted user identity
+  → permission and applicability filters
+  → candidate retrieval
+  → relevance ordering
+  → selected passages with source IDs
+  → answer generation
+  → structure, citation and support checks
+```
+
+[The original retrieval-augmented generation paper](https://arxiv.org/abs/2005.11401) studied generation combined with retrieved external information. A modern application still has to define its own permissions, document lifecycle and answer contract. Adding a vector database does not make those decisions disappear.
+
+Keep the system observable at each stage. For a failed answer, you want to inspect which permitted passages were considered, which were selected, and which IDs the answer cited. You do not need to log every private document indefinitely to achieve that; choose an appropriate retention and redaction policy.
+
+## Chunk for meaning, then measure {#chunking}
+
+A passage needs enough context to mean what its author intended. A sentence saying "this is not available" is useless if its heading identifies the product tier that "this" refers to.
+
+Keep document identity, section heading, version and location with each chunk. Consider overlap where a condition spans a boundary, but remember that duplicated chunks consume space and can make one document appear more important than it is.
+
+There is no magic chunk size that works for all collections. A troubleshooting manual, a source-code repository and a short policy page have different structure. Build a small set of real questions and compare retrieval results before settling on a rule.
+
+Lexical search can be strong for exact identifiers and unusual terms. Semantic retrieval can help when the question and passage use different wording. A hybrid approach is a hypothesis to test, not a mandatory architecture badge.
+
+## Permission checks belong before disclosure {#permissions}
+
+If a user cannot read a document, its text should not be supplied to an answering model on that user’s behalf. Asking the model to keep a secret after supplying it is a weaker boundary than filtering the document out.
+
+Apply access rules in retrieval and recheck any application path that fetches a document directly. Include access scope in cache keys when results differ by user or workspace. A shared cache of retrieved passages can otherwise undo a careful permission filter.
+
+Retrieved text can also contain instructions aimed at the model. [OWASP’s prompt-injection guidance](https://genai.owasp.org/llmrisk/llm01-prompt-injection/) describes indirect injection through external material and notes that retrieval does not eliminate the risk. Treat source text as data, not permission to change the task or call a tool.
+
+## More passages can make the decision harder {#selection}
+
+Suppose the correct passage is already present, but you add twenty tangential passages "just in case". The answer now has more competing details and more opportunities to choose an obsolete exception.
+
+The 2023 [Lost in the Middle study](https://arxiv.org/abs/2307.03172) found position-sensitive performance on the models and retrieval tasks it tested. That finding is a reason to evaluate context arrangement, not a timeless claim that every current model fails in exactly the same way.
+
+Measure your own setup. Try a concise evidence set, distractor-heavy sets and different passage orderings. Record answer support as well as whether the output contains the expected phrase.
+
+## A citation has two jobs {#citations}
+
+First, it should identify a source the user can inspect. Second, that source should actually support the attached claim. Passing the first check does not imply passing the second.
+
+If the source says unopened items may be returned within 30 days, an answer promising sixty days and free shipping is wrong even when it cites the correct document ID. A citation is a pointer, not a certificate of truth.
+
+Use the [evidence-review experiment](#interactive-example) to compare three authored drafts against one passage. The annotations explain their reasoning; the tool does not pretend to be an automated fact checker.
+
+## Evaluate retrieval separately {#retrieval-eval}
+
+For a small labelled question set, identify the passages that would make a supported answer possible. Check whether retrieval places useful evidence inside the selected set. Then evaluate whether generation uses it correctly.
+
+If the evidence is missing, inspect corpus coverage, filters, indexing, candidate retrieval and reranking. If the evidence is present but ignored or misrepresented, inspect the answer contract, evidence arrangement and generation behaviour.
+
+Include an unanswerable slice. A system that answers every question fluently can look impressive while failing the cases where restraint matters most.
+
+## Practice: resolve a version conflict {#practice}
+
+The retriever returns an old 60-day policy and a current 30-day policy. What metadata would let the application make a defensible choice?
+
+<details>
+<summary>Work through the evidence requirements</summary>
+
+Keep effective dates, version IDs, product and region scope, and a record of which document supersedes which. A customer’s purchase date may matter too. "Most recently edited" is not always "applicable to this transaction".
+
+If the available metadata cannot resolve the conflict, return the conflict explicitly or route it to a trusted source. Do not quietly ask the model to choose whichever passage sounds more authoritative.
+
+</details>

@@ -1,0 +1,69 @@
+A linked list is simple to draw and easy to damage. Each node holds a value and a reference to the next node. Change the wrong reference too early and you can lose access to the rest of the sequence.
+
+Reversing a singly linked list is a useful exercise because every line has a visible responsibility. There is no need to memorise three variable names if you understand what each reference keeps reachable.
+
+## Split the list into two parts {#two-parts}
+
+At any point, keep a reversed prefix and an unprocessed suffix. `previous` points to the prefix. `current` points to the suffix. Initially, the prefix is empty and the suffix is the original list.
+
+For `A → B → C → null`, the first step should produce a reversed prefix `A → null` while preserving a way to reach `B → C → null`.
+
+The dangerous moment is changing `A.next`. Before doing that, save the old next reference. That temporary reference is what prevents the remaining list from disappearing from your traversal.
+
+## Rewire one node at a time {#implementation}
+
+```js
+function reverseList(head) {
+  let previous = null;
+  let current = head;
+
+  while (current !== null) {
+    const remaining = current.next;
+    current.next = previous;
+    previous = current;
+    current = remaining;
+  }
+  return previous;
+}
+```
+
+This function expects a finite acyclic list of nodes shaped like `{value, next}`, with the final `next` equal to `null`. It mutates the existing nodes. An empty list is represented by `null` and returns `null`.
+
+The result is a new head reference, not a newly allocated copy. If another part of the program still holds the old head, it now points at the final node. Callers must agree that this mutation is allowed.
+
+[Open Data Structures’ linked-list chapter](https://opendatastructures.org/ods-python/3_1_SLList_Singly_Linked_Li.html) describes nodes, head and tail references, and the operations available at each end. The reversal above is a separate worked reference-tracing exercise.
+
+## Trace the ownership of each suffix {#trace}
+
+After processing A, `previous` is A and `current` is B. After processing B, the prefix is `B → A → null`, while `current` is C. After processing C, the prefix is `C → B → A → null` and the suffix is empty.
+
+Every iteration moves one node from the suffix to the prefix. When the suffix is empty, the prefix contains every original node in reverse order. That observation explains both termination and correctness.
+
+Try drawing the references as labelled arrows. A variable does not contain an entire list; it holds a reference to a node from which other nodes may be reachable.
+
+## Separate finding from changing {#cost}
+
+Reversal touches each node once, giving `O(n)` time and constant auxiliary reference space under the usual model.
+
+Inserting after a node you already hold can take constant pointer work. Finding that node by value or index can still take linear time. This is why "linked-list insertion is O(1)" is an incomplete claim without specifying what the caller already knows.
+
+Removing a singly linked list’s tail is also different from removing its head. A tail reference tells you the last node, but not necessarily its predecessor. A doubly linked list keeps a backwards reference at additional storage and maintenance cost.
+
+## Notice the assumptions that would break it {#limits}
+
+A cycle means this traversal never reaches `null` and may rewire nodes in unintended ways. Shared tails mean mutating one list can change what another owner observes. Concurrent mutation requires a much stronger coordination story than this example provides.
+
+These are reasons to define ownership, not reasons to avoid linked structures entirely. A local data structure with one clear owner is a much easier setting for in-place rewiring.
+
+## Practice: reverse twice {#practice}
+
+What properties would you test beyond checking the printed values?
+
+<details>
+<summary>Work through useful tests</summary>
+
+Test an empty list, one node, two nodes and several nodes. Confirm that the returned head is the old tail, the old head now ends in `null`, and every original node appears exactly once. Reverse the result again and verify that the original node order is restored.
+
+Also confirm that no new nodes were needed. A function returning the right values in newly allocated nodes would satisfy a different contract from this in-place implementation.
+
+</details>

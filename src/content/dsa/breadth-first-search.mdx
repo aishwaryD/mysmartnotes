@@ -1,0 +1,95 @@
+You are building a page that helps someone move through a large building. Rooms are vertices. Doorways are edges. For the moment, every doorway costs one step to cross.
+
+The user asks for the route with the fewest doorway crossings. A route that reaches the destination eventually is not enough; it should reach it with as few edges as possible.
+
+Breadth-first search works because it explores the building in increasing distance from the starting room. Before considering rooms two doors away, it finishes discovering rooms one door away.
+
+## The queue is doing the reasoning {#queue}
+
+A queue takes work from the front and adds newly discovered work to the back. Starting at the entrance, enqueue its neighbours. When each neighbour gets its turn, enqueue the rooms beyond it.
+
+That order gives the queue a useful property: vertices are processed in nondecreasing distance from the start. A newly discovered vertex sits one level beyond the vertex that discovered it.
+
+This is why the first discovery gives a shortest distance in an unweighted graph. If a shorter route existed, its predecessor would have appeared in an earlier level and discovered the vertex already. The [CP-Algorithms BFS reference](https://cp-algorithms.com/graph/breadth-first-search.html) covers this shortest-path guarantee and path reconstruction.
+
+## Keep enough information to get home {#implementation}
+
+A distance tells you how far away a destination is. A parent tells you how to reach it. Store the first parent that discovers each vertex, then walk those parents backwards when the search finishes.
+
+```js
+function shortestPath(graph, start, goal) {
+  const queue = [start];
+  const parent = new Map([[start, null]]);
+  let head = 0;
+
+  while (head < queue.length) {
+    const room = queue[head];
+    head += 1;
+    if (room === goal) break;
+
+    for (const next of graph.get(room) ?? []) {
+      if (parent.has(next)) continue;
+      parent.set(next, room);
+      queue.push(next);
+    }
+  }
+
+  if (!parent.has(goal)) return null;
+  const path = [];
+  for (let room = goal; room !== null; room = parent.get(room)) {
+    path.push(room);
+  }
+  return path.reverse();
+}
+```
+
+Here, vertices are strings, and `null` is reserved for the parent of the start. Every adjacency list is an array of neighbouring strings. A missing adjacency list means "no outgoing edges". An undirected doorway should appear in both rooms’ lists; the function does not add reverse edges for you.
+
+The queue uses a head index rather than repeatedly removing the first array element. This avoids depending on the cost of shifting the remaining array on every dequeue. The array retains processed entries until the function returns, so it still takes linear auxiliary space.
+
+## Trace a small building {#trace}
+
+Consider these directed connections:
+
+```text
+Entrance → Hall, Workshop
+Hall     → Library
+Workshop → Store, Library
+Store    → Exit
+Library  → Exit
+```
+
+After processing Entrance, the queue contains Hall and Workshop. Processing Hall discovers Library. Processing Workshop discovers Store, but does not enqueue Library again. Its first parent is already recorded.
+
+Library then discovers Exit. The reconstructed route is Entrance → Hall → Library → Exit. Another three-edge route exists through Workshop and Store. BFS promises a shortest route; it does not promise a unique one. Neighbour ordering decides which equal-length route wins.
+
+For predictable product behaviour, sort neighbours or define a stable adjacency order. Do not advertise a special tie-breaking rule that your graph storage does not preserve.
+
+## Mark a room when you discover it {#discovery}
+
+The parent map doubles as the visited set. A vertex enters it when it is enqueued, not when it is eventually processed.
+
+Imagine two rooms both point to the same corridor. If you wait until processing time to mark the corridor, both rooms may enqueue it. In a dense graph, those duplicate discoveries create unnecessary work and make parent assignment harder to reason about.
+
+Marking on enqueue gives every vertex one first discoverer. That is both an efficiency measure and part of the explanation of correctness.
+
+## Know the boundary of the guarantee {#limits}
+
+With adjacency lists, BFS examines each reachable vertex once and each outgoing edge from those vertices once. Under ordinary constant-time map and queue assumptions, the work is `O(V + E)` over the explored subgraph, with `O(V)` auxiliary space. An adjacency matrix changes neighbour enumeration costs.
+
+If one doorway takes ten minutes and another takes one, "fewest doors" is no longer "fastest route". For nonnegative varying edge weights, Dijkstra’s algorithm is a more appropriate starting point. If all edges have the same positive cost, BFS’s edge-count ordering is still enough.
+
+Trees are graphs with additional structure. In an ordinary undirected tree there is a unique simple path between connected vertices, but you still need to avoid walking back to a parent forever. Keeping a visited set is a straightforward general solution.
+
+## Practice: start from several places {#practice}
+
+There are three emergency exits. For every room, find the distance to its nearest exit. Would you run an independent BFS from every room?
+
+<details>
+<summary>Work through the approach</summary>
+
+For an undirected building graph, put all three exits in the initial queue with distance zero. Mark all three as discovered before starting. The search expands from every exit in distance order, so each room’s first discovery gives its distance to the nearest one.
+
+For a directed graph, reverse the edges first if your question is "how can this room reach an exit?" rather than "what can an exit reach?" The direction is part of the problem, not a small implementation detail.
+
+</details>

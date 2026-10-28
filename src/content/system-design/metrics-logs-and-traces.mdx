@@ -1,0 +1,56 @@
+A release goes out and customers report slow exports. The service's average CPU use looks ordinary. The error counter barely moves. One engineer suggests adding more instances; another wants to revert immediately.
+
+Both actions might change the symptom, but neither explains it yet. You need a path from the customer's experience to the part of the request or job that spent the time.
+
+## Give each signal a question {#signals}
+
+A metric can show whether export completion time is changing across the service. A trace can show the sequence and duration of work for a sampled export. A log can record a particular state change or failure with diagnostic context.
+
+[OpenTelemetry describes these signals](https://opentelemetry.io/docs/concepts/signals/) and how they fit into instrumentation. They are complementary views. A duration metric does not automatically contain the steps inside a slow request, and a pile of log messages does not automatically reveal a useful service-level trend.
+
+Start with a question and choose the smallest evidence that can answer it. "Are exports missing their deadline?" needs a defined deadline and an observation of completion or failure, not just the number of jobs that entered the queue.
+
+## Follow one export end to end {#investigation}
+
+For our example, separate time waiting in the queue, time acquiring a database connection, time reading rows, time writing the file and time delivering the result. Keep the overall duration as well.
+
+Suppose queue time is stable while connection acquisition has increased. The database query itself still runs quickly. That points toward a different investigation from a slow query plan: connection leaks, longer transactions, more concurrent work or a changed pool limit might be relevant.
+
+Do not subtract unrelated percentiles to invent a missing component's percentile. Inspect request-level observations or appropriately related distributions. The p95 of total duration and p95 of query duration may describe different requests.
+
+## Keep a useful correlation trail {#correlation}
+
+Choose a job ID for the export and propagate an appropriate trace context through the supported queue and worker boundaries. Record state transitions with that job ID in authorised diagnostic logs. Trace identifiers and business identifiers have different roles; keep them distinguishable.
+
+An illustrative event might look like this:
+
+```json
+{
+  "event": "export.database_connection_acquired",
+  "jobId": "export-example-17",
+  "waitMs": 840,
+  "pool": "export-reader",
+  "attempt": 2
+}
+```
+
+This is a teaching fixture, not a required schema. In a real system, use your instrumentation library's conventions and record only information your operational workflow is allowed to retain. The full document being exported is not needed to explain a connection wait.
+
+## Bound the information you collect {#cardinality}
+
+Metrics labelled by route template, result category and deployment version can support useful comparisons. A separate metric series for every request ID or arbitrary URL can create an unbounded set of labels. Use correlation logs or traces for those identifiers instead of making them universal metric dimensions.
+
+Sampling also changes what you can conclude. Not seeing a failure in a small set of sampled traces does not establish that no failure occurred. Decide how important errors and unusually slow operations should be captured, and understand the collection system's own limits.
+
+Monitor the telemetry path itself. Missing spans during an incident can mean the application never performed the work, but they can also mean collection or export failed. Keep those explanations separate.
+
+## Practice: explain low CPU and slow requests {#practice}
+
+Request latency doubles, CPU remains low, and connection-pool wait time rises. Which evidence would you gather before adding application instances?
+
+<details>
+<summary>Work through the investigation</summary>
+
+Inspect connection ownership, transaction duration, pool saturation and concurrency changes around the release. Correlate a slow request's wait with its later query duration. Check whether connections are being returned on exceptions and cancellation. More instances can create more database connections and worsen contention, so first describe which resource is waiting and why. Compare representative before-and-after observations instead of relying on one unusually slow trace.
+
+</details>

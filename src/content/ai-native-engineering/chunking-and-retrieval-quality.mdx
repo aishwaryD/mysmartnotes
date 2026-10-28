@@ -1,0 +1,61 @@
+A returns policy has a general rule followed by an exception for one region. Your document processor cuts the page into chunks. One chunk contains the exception, but its region heading falls into the previous chunk.
+
+A customer asks a general question. Retrieval finds the exception because its wording is similar. The assistant applies it everywhere. Before adding a stronger instruction to the prompt, look at what the model was actually given.
+
+## Keep an answerable unit together {#unit}
+
+A useful chunk is more than a slice that fits a token limit. It should preserve enough context for a reader to understand the relevant statement. A table row may need its column headings. An exception may need the rule and the scope it modifies.
+
+[Elastic's chunking guide](https://www.elastic.co/search-labs/blog/chunking-strategies-elasticsearch) discusses several ways to divide documents and the trade-offs those choices create. No single chunk size is guaranteed to work for every corpus. Your policies, questions and evaluation cases determine whether a particular arrangement helps.
+
+For our returns page, try retaining the document title, section path and policy version with each passage. Keep identifiers that let you return to the original document. Repeated headings are useful context, but duplicating every page's entire introduction into every chunk can add noise.
+
+## Follow one failed question through the pipeline {#diagnosis}
+
+Write down the customer's question, the expected supporting passage, the candidates returned by retrieval, the passages passed to the model and the final answer.
+
+If the right passage never appears among the candidates, investigate indexing, permissions, query interpretation and the retrieval method. If it appears among candidates but is discarded later, inspect ranking or filtering. If it reaches the model with the necessary context and the answer is still wrong, the next investigation concerns evidence use and generation.
+
+This distinction makes experiments cheaper. You can test a retrieval change without generating an answer for every question. You can also avoid blaming the model for a condition the retrieval pipeline removed.
+
+## Build a small retrieval test set {#test-set}
+
+Choose representative questions and annotate which documents or passages can support them. Include an unanswerable question and a question whose answer differs by version or permission scope.
+
+For each question, inspect whether adequate evidence appears within the candidates you will actually pass onwards. A document ID match alone can be too coarse: a long document may contain the answer while the selected passage omits it. Decide what counts as sufficient evidence for your evaluation.
+
+Keep some questions out of day-to-day tuning. Repeatedly adjusting chunking to the same few examples can produce a comfortable local result that does not transfer to new questions.
+
+## Calculate a retrieval result {#worked-retrieval}
+
+Consider this invented, fully labelled test case. A question needs both the general rule in `rule-3` and the regional condition in `region-3`. Those are the two relevant passages; other returned passages do not help answer this question.
+
+| Rank | Retrieved passage | Relevant to this question? |
+| --- | --- | --- |
+| 1 | `rule-3` | Yes |
+| 2 | `shipping-2` | No |
+| 3 | `archive-1` | No |
+| 4 | `region-3` | Yes |
+
+At `k = 3`, one of three selected passages is relevant, so precision@3 is `1/3`. One of the two relevant passages was retrieved, so recall@3 is `1/2`. At `k = 4`, recall reaches `2/2`, while precision is `2/4`. The extra slot recovers a necessary condition but also increases context. These are definitions applied to this labelled set, not measured performance claims.
+
+A hit-rate check would pass at `k = 1` because at least one relevant passage appeared. It would miss the absent regional condition. That is why a useful evaluation should also ask whether the selected set contains enough evidence to answer the whole question. Relevance labels, evidence completeness and generation quality are related checks, not interchangeable scores.
+
+## Count the cost of overlap {#overlap}
+
+Overlap can help when an important sentence straddles a boundary. It also creates repeated passages, extra storage and repeated context in the final request. Several near-duplicate chunks can occupy the slots that should have contained different supporting facts.
+
+Try changing one design choice at a time: section-aware boundaries, preserved headings, overlap, or a ranking step. Compare the same cases and inspect both improvements and regressions. Label hypothetical results as hypothetical; similarity scores from a search service are not a calibrated probability that an answer is correct.
+
+Keep access controls ahead of evidence exposure. A highly relevant passage the user may not read must not become acceptable merely because it improved a retrieval metric.
+
+## Practice: repair the regional exception {#practice}
+
+The returned passage says returns are accepted for sixty days. Its original heading says this rule applies only to one region. How would you change the evidence representation and test the change?
+
+<details>
+<summary>Work through the evidence boundary</summary>
+
+Retain the region and section path with the passage, and consider keeping the qualifying heading in the chunk itself. Add questions for the named region, a different region and an unspecified region. Check retrieval and the eventual answer separately. Include a question whose evidence is absent so that a broader chunk does not quietly encourage the system to infer a policy it still does not have.
+
+</details>

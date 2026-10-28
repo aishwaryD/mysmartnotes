@@ -1,0 +1,75 @@
+You open a parenthesis, then a square bracket. Which one must close first?
+
+The most recent unmatched opening comes first. That small observation gives you the right data structure before you write a loop: a stack.
+
+Stacks and queues are useful because they make an ordering rule explicit. The right rule can carry much of an algorithm’s reasoning for you.
+
+## Match the order to the task {#ordering}
+
+A stack is last-in, first-out. The newest pending item is handled next. A queue is first-in, first-out. The oldest pending item gets its turn.
+
+A call stack, an undo history and nested delimiters often need the first rule. Breadth-first exploration and ordinary first-come work scheduling often need the second. A real scheduler may add priorities, fairness and cancellation, but it should still make its ordering policy clear.
+
+The [Open Data Structures linked-list discussion](https://opendatastructures.org/ods-python/3_1_SLList_Singly_Linked_Li.html) shows how a representation can support stack or queue operations. The abstract rule and the storage representation are separate choices.
+
+## Validate nested delimiters {#implementation}
+
+This example checks parentheses, square brackets and braces in a string. Other characters are ignored.
+
+```js
+function balancedDelimiters(text) {
+  const openings = new Set(['(', '[', '{']);
+  const matching = new Map([[')', '('], [']', '['], ['}', '{']]);
+  const stack = [];
+
+  for (const symbol of text) {
+    if (openings.has(symbol)) {
+      stack.push(symbol);
+    } else if (matching.has(symbol)) {
+      if (stack.length === 0 || stack.pop() !== matching.get(symbol)) {
+        return false;
+      }
+    }
+  }
+  return stack.length === 0;
+}
+```
+
+For `([{}])`, each closing symbol matches the current top of the stack. For `([)]`, the closing parenthesis arrives while the top is a square bracket, so the function rejects it immediately.
+
+This is not a complete programming-language parser. A bracket inside a quoted string or a comment may have different meaning. A real parser needs tokenisation rules that establish which symbols are syntax before applying this structural check.
+
+## The stack is the unfinished structure {#invariant}
+
+After reading any prefix of the input, the stack contains exactly its unmatched opening delimiters, in encounter order. The top is the opening that the next closing delimiter must match.
+
+An opening extends that unfinished structure. A matching closing symbol completes its innermost part. A mismatch means no later symbol can repair the already-invalid nesting under this grammar.
+
+At the end, a nonempty stack means some openings never closed. Returning true just because no mismatch occurred inside the loop would miss that case.
+
+## Cost follows the operations {#cost}
+
+Each symbol is read once. An opening is pushed once and popped at most once. Under the ordinary dynamic-array stack model, total work is linear in input length. The stack can grow to linear size for input containing only openings.
+
+If you need a FIFO queue in JavaScript, a head index into an array avoids repeatedly shifting the remaining contents. A long-lived queue also needs a policy for reclaiming processed storage; retaining every dequeued entry forever is a memory leak in slow motion.
+
+Other languages provide dedicated structures. For example, [Python documents deque](https://docs.python.org/3/library/collections.html#collections.deque) with efficient operations at either end. Read the library’s contract rather than assuming every sequence type has the same removal costs.
+
+## Make empty behaviour part of the API {#empty}
+
+For a custom stack or queue, what happens when it is empty? Throwing, returning a tagged result, and returning a special sentinel can all be reasonable. Returning a value that could also be a legitimate item creates ambiguity.
+
+The delimiter checker avoids that ambiguity by inspecting the stack length before popping. The algorithm can then distinguish an unmatched closing delimiter from a valid comparison.
+
+## Practice: return a useful error {#practice}
+
+Extend the checker to return the index of the first mismatch and the expected closing delimiter. What would you store on the stack?
+
+<details>
+<summary>Work through the approach</summary>
+
+Store each opening delimiter with its input position. When a mismatch occurs, the top tells you which opening remains unfinished and which closing symbol was expected. An empty stack means the closing symbol has no matching opening.
+
+At end of input, report an unclosed opening from the stack. If your positions must match a browser text editor, define whether they count code units, code points or another unit before returning them.
+
+</details>

@@ -1,0 +1,95 @@
+.page {
+  max-width: 1060px;
+  margin: auto;
+  padding: 55px 32px 75px;
+}
+.page header {
+  max-width: 760px;
+  margin-bottom: 45px;
+}
+.page h1 {
+  font: 400 clamp(55px, 7vw, 84px) / 1.03 var(--msn-serif);
+  letter-spacing: -0.04em;
+  margin: 25px 0;
+}
+.page h1 em {
+  color: var(--msn-accent);
+  font-weight: 400;
+}
+.page header > p:last-child {
+  font-size: 17px;
+  line-height: 1.9;
+  color: var(--msn-muted);
+}
+.card {
+  display: flex;
+  gap: 35px;
+  border-top: 1px solid var(--msn-line);
+  padding: 34px 0;
+  color: var(--msn-ink);
+}
+.card:hover {
+  color: var(--msn-ink);
+  text-decoration: none;
+}
+.card:hover h2 {
+  color: var(--msn-accent);
+}
+.card > span:first-child {
+  font: 9px/1.6 var(--ifm-font-family-monospace);
+  color: var(--msn-accent);
+  min-width: 90px;
+  padding-top: 5px;
+}
+.card > span:last-child {
+  font-size: 25px;
+  margin-left: auto;
+  color: var(--msn-accent);
+}
+.card h2 {
+  font: 400 39px/1.1 var(--msn-serif);
+  letter-spacing: -0.025em;
+  max-width: 23ch;
+  margin: 0 0 17px;
+}
+.card p {
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--msn-muted);
+  max-width: 65ch;
+}
+.card small {
+  font: 8px/1.8 var(--ifm-font-family-monospace);
+  color: var(--msn-muted);
+}
+.free {
+  font-size: 12px;
+  color: var(--msn-muted);
+  border-top: 1px solid var(--msn-line);
+  padding-top: 25px;
+  line-height: 1.9;
+}
+@media (max-width: 600px) {
+  .page {
+    padding: 40px 20px 55px;
+  }
+  .card {
+    gap: 15px;
+    flex-wrap: wrap;
+  }
+  .card > span:first-child {
+    width: 100%;
+  }
+  .card > div {
+    flex: 1;
+  }
+  .card h2 {
+    font-size: 34px;
+  }
+  .card p {
+    font-size: 13px;
+  }
+  .page h1 {
+    font-size: 55px;
+  }
+}

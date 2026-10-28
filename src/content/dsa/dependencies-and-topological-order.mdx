@@ -1,0 +1,83 @@
+A build system cannot bundle an application before compiling the files it depends on. A learning path cannot reasonably assume a concept that has not been introduced yet. A migration may need one table created before another references it.
+
+These are ordering problems over dependencies. A directed edge from A to B will mean **A must happen before B**.
+
+A topological order places every prerequisite before the work that depends on it. Such an order exists exactly when the directed graph is acyclic.
+
+## Count the prerequisites still outstanding {#indegree}
+
+For each task, count its incoming edges. This count is its indegree: how many prerequisites have not yet been removed from consideration.
+
+Tasks with zero indegree are ready. Put them in a queue. Remove one ready task, append it to the output, and reduce the indegree of each task it unlocks. Any task whose count reaches zero becomes ready too.
+
+This is Kahn’s algorithm. Its central idea is simple: repeatedly do work whose prerequisites are already satisfied.
+
+## Make the graph contract explicit {#implementation}
+
+```js
+function topologicalOrder(vertices, edges) {
+  const adjacency = new Map(vertices.map(v => [v, []]));
+  const indegree = new Map(vertices.map(v => [v, 0]));
+  if (adjacency.size !== vertices.length) {
+    throw new Error('vertices must be unique');
+  }
+  for (const [before, after] of edges) {
+    if (!adjacency.has(before) || !adjacency.has(after)) {
+      throw new Error('every edge endpoint must be declared');
+    }
+    adjacency.get(before).push(after);
+    indegree.set(after, indegree.get(after) + 1);
+  }
+
+  const ready = vertices.filter(v => indegree.get(v) === 0);
+  const order = [];
+  for (let head = 0; head < ready.length; head += 1) {
+    const task = ready[head];
+    order.push(task);
+    for (const next of adjacency.get(task)) {
+      indegree.set(next, indegree.get(next) - 1);
+      if (indegree.get(next) === 0) ready.push(next);
+    }
+  }
+  return order.length === vertices.length ? order : null;
+}
+```
+
+Vertices here are stable strings or numbers, and an edge is a pair of declared vertices. Parallel duplicate edges are counted and removed consistently. An isolated vertex is a valid task with no dependencies.
+
+The function returns one valid order or `null` if a directed cycle prevents a complete order. It does not return a partial schedule as though it were complete.
+
+## Trace a small build {#trace}
+
+Suppose `parse` precedes both `check` and `optimise`, and both precede `bundle`. Initially only `parse` is ready. Removing it makes `check` and `optimise` ready. Either may appear next. `bundle` becomes ready only after both have been removed.
+
+There can be several valid orders. If the product needs deterministic tie-breaking, preserve a stable input order or use an ordered ready set. An ordered structure can change the cost, so include that in the analysis.
+
+[The CP-Algorithms topological-sorting reference](https://cp-algorithms.com/graph/topological-sort.html) discusses the dependency-order property and a DFS-based construction. Kahn’s queue-based approach above reaches the same goal through outstanding-prerequisite counts.
+
+## Recognise what a cycle means {#cycles}
+
+Add an edge from `bundle` back to `parse`. Every task on that dependency cycle requires another task on the cycle first. No starting point can satisfy the requirements.
+
+When the ready queue empties before all vertices have been output, some remaining vertices still depend on the remaining graph. Following incoming dependencies in a finite graph eventually repeats a vertex, revealing a directed cycle.
+
+A disconnected graph is not itself a problem. Independent components can each contribute ready tasks. A self-loop is a cycle even when the rest of the graph is ordinary.
+
+## Count the edges once {#complexity}
+
+With adjacency lists and ordinary constant-time map assumptions, constructing and processing the graph takes `O(V + E)` time and space. Every vertex enters the ready queue at most once, and every edge causes one decrement.
+
+A dependency order is not a full resource scheduler. It says what may precede what. It does not choose worker counts, task durations, memory limits or the best way to use parallel capacity. Those are additional decisions built on top of the dependency structure.
+
+## Practice: explain the failure to a user {#practice}
+
+Returning `null` is sufficient for this function’s contract. What would a build tool need to show a useful error?
+
+<details>
+<summary>Work through the extension</summary>
+
+Keep the unresolved subgraph and run a cycle-finding traversal with parent information. Report a concrete chain such as parse → check → bundle → parse. Distinguish that chain from other tasks merely blocked behind it.
+
+"Circular dependency" is accurate but hard to act on. Showing the actual dependency path gives the user an edge they can inspect and remove or redesign.
+
+</details>

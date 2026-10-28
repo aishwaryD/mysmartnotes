@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 380" fill="none">
+<title>A desk for thinking through an engineering problem</title>
+<desc>An open notebook with a graph and code, a laptop, loose notes, a pencil and a coffee cup, drawn in cream, charcoal and teal.</desc>
+<g stroke-linecap="round" stroke-linejoin="round">
+<path d="M65 321Q558 333 1133 317M99 339Q604 348 1096 335" stroke="#62676a" stroke-width="1.2"/>
+<path d="M138 126l248-26 34 194-253 21z" fill="#a9997a" stroke="#756e60" stroke-width="2"/>
+<path d="M147 114l242-24 36 194-250 27z" fill="#d4c9b2" stroke="#a6997d" stroke-width="2"/>
+<path d="M162 126l211-20 29 164-217 28z" fill="#e3d9c3"/>
+<path d="M185 158l157-15M189 173l117-12M195 190l161-17M199 207l91-8M204 225l143-17M209 242l113-12" stroke="#9e9887" stroke-width="2"/>
+<path d="M162 113l29 197" stroke="#4b9685" stroke-width="5"/>
+<path d="M319 155Q451 122 563 156L570 316Q462 283 333 315z" fill="#d8cdb6" stroke="#9e947e" stroke-width="2"/>
+<path d="M563 156Q674 119 788 154L778 315Q670 285 570 316z" fill="#e5dac3" stroke="#9e947e" stroke-width="2"/>
+<path d="M335 315Q458 294 570 323Q681 294 778 315" stroke="#b1a58a" stroke-width="5"/>
+<path d="M563 156l7 160" stroke="#9e947e" stroke-width="2"/>
+<path d="M343 174Q449 153 539 177M346 185Q451 166 537 190" stroke="#a59b86"/>
+<g stroke="#518d7f" stroke-width="2.2"><path d="M441 205l-43 35m43-35 43 30m-86 5-24 29m24-29 22 27m64-32-19 33m19-33 25 31"/><circle cx="441" cy="205" r="8" fill="#e3d9c3"/><circle cx="398" cy="240" r="7" fill="#e3d9c3"/><circle cx="484" cy="235" r="7" fill="#e3d9c3"/><circle cx="374" cy="269" r="5"/><circle cx="420" cy="267" r="5"/><circle cx="465" cy="268" r="5"/><circle cx="509" cy="266" r="5"/></g>
+<path d="M598 182l30-5m-29 18 111-11m-108 25 74-9m-72 24 104-11m-101 25 37-4m-34 20 89-11m-85 26 124-13" stroke="#8d8778" stroke-width="2"/>
+<path d="M616 196l-7 7 8 6m84-25 8 6-6 8" stroke="#4b9685" stroke-width="2"/>
+<path d="M717 149l-5 36 12-9 10 6 5-35" fill="#559c89" stroke="#408471"/>
+<path d="M769 62l237 13-9 177-235-13z" fill="#343b3e" stroke="#858d90" stroke-width="2"/>
+<path d="M783 76l207 12-8 146-207-10z" fill="#192021" stroke="#626d70"/>
+<circle cx="889" cy="72" r="2" fill="#a4aaa5"/>
+<g stroke-width="3"><path d="M800 100l37 2m-39 12 77 4m-61 12 94 5m-95 8 64 4m-80 10 29 2m-12 12 107 6m-111 8 76 5m-76 9 28 2" stroke="#69b69f"/><path d="M887 117l66 4m-62 23 39 2m-83 42 91 6" stroke="#a7b7af"/></g>
+<path d="M762 239l235 13 58 43-295 2-49-33z" fill="#596264" stroke="#939d9e" stroke-width="2"/>
+<path d="M774 251l201 10 33 22-234-3-22-17z" fill="#343e40" stroke="#7a8788"/>
+<g stroke="#778587" stroke-width="1"><path d="M778 258l198 10m-205-3 215 10M795 253l8 24m19-23 7 23m18-22 7 22m18-20 7 21m18-20 6 20m19-18 7 18m17-17 6 18"/></g>
+<path d="M848 283l66 2 9 8-72-1z" fill="#717d7e"/>
+<path d="M957 209c-11-10-6-21 3-30m8 32c-4-11 4-19 9-27" stroke="#7c8887" stroke-width="1.6"/>
+<ellipse cx="1048" cy="305" rx="49" ry="11" fill="#373c3c"/>
+<path d="M1016 246l4 45c4 20 54 19 58-2l3-43" fill="#b7c7c0" stroke="#819a91" stroke-width="2"/>
+<path d="M1080 254c38-8 37 28-3 26" stroke="#9eb5ab" stroke-width="8"/>
+<ellipse cx="1048" cy="246" rx="33" ry="10" fill="#d5dfd7" stroke="#819a91" stroke-width="2"/>
+<ellipse cx="1048" cy="248" rx="26" ry="6" fill="#665648"/>
+<path d="M1042 220c-7-11 10-15 4-26m10 25c-5-9 9-14 5-23" stroke="#84948d" stroke-width="1.4"/>
+<path d="M228 294l65-128 8 4-64 129-8 7z" fill="#c6a961" stroke="#8e7b4e" stroke-width="1.2"/>
+<path d="M293 166l8 4 7-14-8-4z" fill="#5aab93"/>
+<path d="M229 306l8-7-8-5z" fill="#c6bda5"/><path d="M229 306l2-4 2 1z" fill="#363b38"/>
+<path d="M93 64l111-10 5 61-112 11z" fill="#a8bdae" stroke="#718c7c"/>
+<path d="M110 77l53-5m-51 16 72-7m-69 18 46-5" stroke="#5f7a69" stroke-width="1.6"/>
+<path d="M119 59l10-8 27-2 10 7" stroke="#7f9182" stroke-width="2"/>
+<path d="M467 67q34-16 65 0m-48 10q20-7 35 0" stroke="#8b9391"/>
+<text x="418" y="49" fill="#b9c2bc" font-family="Georgia,serif" font-size="22" font-style="italic" transform="rotate(-4 418 49)">Why does this work?</text>
+<path d="M578 51q51-10 95 10" stroke="#65726b" stroke-dasharray="3 6"/>
+</g></svg>

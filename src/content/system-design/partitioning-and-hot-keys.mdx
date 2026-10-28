@@ -1,0 +1,60 @@
+A document service puts each customer's records under that customer's ID. The design is convenient: listing a customer's documents is a direct lookup. Then one customer imports a year's worth of activity in an afternoon, while most customers barely write anything.
+
+There are many customer IDs, but one of them dominates the work. Counting keys did not describe the load. Partitioning starts with access patterns and traffic distribution, not just the number of records.
+
+## State which operation should become cheaper {#access-pattern}
+
+For a customer document list, the common operations might be: append a new document, fetch one document by ID, and list the latest twenty documents for a customer. Write them down before choosing a key.
+
+A key that scatters every record randomly can make writes easier to spread while making a customer's list require many lookups. A key that groups all customer data can make that list straightforward while concentrating a large customer's traffic. Neither is an improvement without the workload that justifies it.
+
+[AWS's partition-key guidance](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html) recommends considering how activity is distributed across keys and indexes. The useful general lesson is to measure work per access pattern. Product-specific capacity rules should be checked separately for the database you actually use.
+
+## Distinguish storage balance from traffic balance {#skew}
+
+Suppose four partitions each hold a quarter of the records. Requests for one record account for most reads. Storage is balanced, but traffic is not. Adding empty partitions does not necessarily move or divide that one record's work.
+
+Use a small workload table rather than a single average:
+
+| Access pattern | Where it concentrates | Possible response |
+| --- | --- | --- |
+| One public document is read repeatedly | One popular record | A cache with an explicit freshness policy |
+| One customer imports many documents | One customer key | Bounded ingestion or a bucketed write design |
+| Recent events use a timestamp prefix | A narrow recent range | A key that spreads the actual write pattern |
+
+These are starting points, not automatic prescriptions. A cache that can serve stale public content may be inappropriate for current permissions. Bucketing an import changes how readers assemble its result.
+
+## Follow the cost of a bucketed key {#buckets}
+
+Imagine storing an active customer's events in four buckets: customer A plus bucket 0 through 3. A stable routing rule chooses a bucket for each event. This is an illustrative logical design; physical placement remains a property of the storage system.
+
+To read the latest twenty events, the application may now have to query four ordered streams and merge them. It needs a pagination policy that does not accidentally skip or repeat events when timestamps tie. Include a stable event ID in the order and describe what concurrent writes can do to a page boundary.
+
+The extra read work is part of the write-scaling decision. Document how many streams each request can touch and what happens if one is slow. "Fan out to everything" is hard to control when the bucket count quietly grows.
+
+## Put numbers beside the bucket decision {#worked-buckets}
+
+Suppose one tenant sends 800 equal-cost writes per second. For this example, assume a storage boundary can safely sustain 300 such writes per second. Keeping all of that work at one boundary exceeds the assumed capacity, even if every other tenant is idle.
+
+Four evenly used logical buckets would average 200 writes per second each. That arithmetic is useful only if the physical placement can spread them across enough independent capacity. Four key names served by the same constrained resource do not create four times the capacity. A skewed routing function can also leave one bucket overloaded.
+
+Now account for reads. If the page needs the latest twenty events, querying twenty from each bucket returns up to eighty candidates before a merge selects twenty. The page still contains twenty events, but the storage work and intermediate data increased. Compare both sides of that trade before accepting the design. These numbers are invented workload assumptions, not a throughput claim about a particular database.
+
+## Plan how the routing rule changes {#migration}
+
+A naive rule such as hash modulo bucket count changes assignments when the count changes. A reader using the new rule may look in a different place from the writer that stored an older record.
+
+Migration therefore needs explicit ownership and a way to find old data. Options include versioned routing metadata, a controlled backfill, or a storage system that manages partition movement itself. During the transition, define which location accepts new writes and how duplicate copies are resolved.
+
+Do not design an elaborate sharding layer merely because a service might grow. First identify the measured limit, the available database controls and the operational cost of owning a routing scheme.
+
+## Practice: inspect the average {#practice}
+
+Your dashboard shows low average utilisation, but writes for one large tenant time out. What measurements would help before increasing the partition count?
+
+<details>
+<summary>Work through the investigation</summary>
+
+Break traffic down by the relevant tenant or key range in a controlled diagnostic view. Look for throttling, latency and request volume concentrated on the large tenant. Check secondary-index access patterns too. Avoid placing unbounded customer identifiers in every permanent metric label. If one logical key dominates, show how the proposed change actually divides or limits that key's work before calling it a solution.
+
+</details>

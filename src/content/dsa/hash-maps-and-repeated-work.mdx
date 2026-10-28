@@ -1,0 +1,103 @@
+A nested loop is often a sign that you are answering the same question repeatedly.
+
+Suppose an expense report contains `[11, 7, 15, 4]`, and you need two different entries that add up to 18. A straightforward solution takes each entry and scans the rest of the report for its partner. It works. It also forgets everything the earlier scans learned.
+
+Before changing the code, name the repeated question: **have I already seen the value that would complete this pair?**
+
+That question has a useful answer we can keep.
+
+## Remember the fact, not the search {#remember}
+
+As you walk through the report, store each value and its index in a map. For a current value `x`, look for `target - x` among the earlier entries.
+
+```js
+function findPair(values, target) {
+  const earlier = new Map();
+
+  for (let i = 0; i < values.length; i += 1) {
+    const partner = target - values[i];
+    if (earlier.has(partner)) {
+      return [earlier.get(partner), i];
+    }
+    earlier.set(values[i], i);
+  }
+  return null;
+}
+```
+
+Look up the partner **before** inserting the current entry. That order prevents a single entry from pairing with itself. For `[9]` and target 18, there is no pair. For `[9, 9]`, there is: the second entry can use the first.
+
+This implementation accepts finite numeric values and returns one valid pair, not every pair. When several answers exist, which one it returns depends on the scan and overwrite policy. State that contract rather than letting callers discover it by accident.
+
+## A useful cost model has assumptions {#cost-model}
+
+Under the usual expected constant-time hash-table access model, the scan takes expected `O(n)` time and `O(n)` additional space. The brute-force version takes `O(n²)` time and constant additional space.
+
+JavaScript’s `Map` is an interface, not a promise that every engine uses a particular hash table. The [ECMAScript specification](https://tc39.es/ecma262/multipage/keyed-collections.html#sec-map-objects) requires average access times to be sublinear in collection size; it does not guarantee worst-case constant-time access.
+
+That distinction matters when you explain performance. Separate an algorithm’s analysis under a model from the exact guarantees of the platform running it.
+
+Also consider the data itself. If a report has twelve entries, the simpler nested scan may be perfectly adequate. Memory, readability, input size and repetition all belong in the decision.
+
+## The same idea can maintain a window {#window}
+
+Now imagine a stream of device IDs. You want the longest consecutive run with no repeated ID. Starting a fresh set at every position would repeat a lot of work.
+
+Keep a window `[left, right]` that contains no duplicates. When a repeated ID arrives, move `left` just beyond that ID’s previous occurrence. Store the most recent index of every ID.
+
+```js
+function longestUniqueRun(values) {
+  const lastSeen = new Map();
+  let left = 0;
+  let bestStart = 0;
+  let bestLength = 0;
+
+  for (let right = 0; right < values.length; right += 1) {
+    const value = values[right];
+    if (lastSeen.has(value)) {
+      left = Math.max(left, lastSeen.get(value) + 1);
+    }
+    lastSeen.set(value, right);
+
+    const length = right - left + 1;
+    if (length > bestLength) {
+      bestStart = left;
+      bestLength = length;
+    }
+  }
+  return {start: bestStart, length: bestLength};
+}
+```
+
+This function works on an array of IDs. For objects, `Map` uses object identity: two separately created objects with identical fields are still different keys. If your application means "same device ID", use the stable ID string as the key.
+
+## The backwards-boundary bug {#boundary-bug}
+
+Trace `['a', 'b', 'b', 'a']`.
+
+After the second `b`, the window begins at index 2. When the final `a` arrives, its previous occurrence was at index 0. That occurrence is already outside the window.
+
+If you blindly set `left = lastSeen.get(value) + 1`, you move the boundary backwards to index 1 and admit both `b`s again. `Math.max` prevents this. The window’s left edge can only advance.
+
+The map remembers the whole past. The window only cares about the relevant part of that past. Those are different responsibilities, and confusing them creates the bug.
+
+## Why two pointers do not imply quadratic work {#amortised-work}
+
+There is one pass over `right`. The left boundary also advances at most `n` positions over the entire run. It never restarts from zero. Under the same expected hash-table cost model, this is an expected linear-time algorithm.
+
+The important question is how many times each piece of input can cause work across the complete execution. Counting visible loops is a poor substitute for tracing the movement they permit.
+
+Additional space is proportional to the number of distinct IDs remembered. If the stream is unbounded, a map that never forgets old IDs can grow without bound too. A streaming service may need a different retention policy; this finite-array example is not a complete streaming storage design.
+
+## Practice with a changed requirement {#practice}
+
+Find the longest run containing at most two distinct IDs. Can you still store only the most recent occurrence?
+
+<details>
+<summary>Work through the approach</summary>
+
+A frequency map makes the new requirement easier to express. Add the rightmost ID’s count. While more than two IDs have positive counts, remove one ID from the left edge and advance that edge. Delete keys when their count becomes zero. Record the longest valid window after restoring the invariant.
+
+The window now promises "at most two distinct IDs" rather than "no repeats". The mechanics follow from that sentence. This is a useful habit: define what a valid window means before writing its pointer updates.
+
+</details>

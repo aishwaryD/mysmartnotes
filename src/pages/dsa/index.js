@@ -1,7 +1,4 @@
 import React from 'react';
-import ComingSoonPage from '@site/src/components/ComingSoonPage';
+import SubjectIntroduction from '@site/src/components/SubjectIntroduction';
 import {getPath} from '@site/src/data/paths';
-
-export default function DsaPage() {
-  return <ComingSoonPage path={getPath('dsa')} />;
-}
+export default function Page(){return <SubjectIntroduction subject={getPath('dsa')}/>;}

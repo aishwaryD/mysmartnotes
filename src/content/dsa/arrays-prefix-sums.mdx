@@ -1,0 +1,75 @@
+You have daily usage counts and a dashboard that repeatedly asks for totals over different date ranges. Summing each range from scratch is easy to write. It also pays for the same additions over and over.
+
+A prefix sum keeps the work you have already done. It is a small example of a larger design habit: prepare an answer representation around the questions that will be asked often.
+
+## Store the sum before each boundary {#prefix-definition}
+
+For values `[4, 2, 7, 1]`, create a prefix array `[0, 4, 6, 13, 14]`. Entry `prefix[k]` is the sum of the first `k` values. The extra zero represents the boundary before the first element.
+
+A range `[left, right)` includes `left` and excludes `right`. Its sum is `prefix[right] - prefix[left]`.
+
+To sum indices 1 through 2, subtract `prefix[1]` from `prefix[3]`: `13 - 4 = 9`. The shared prefix before index 1 disappears, leaving 2 + 7.
+
+Half-open ranges also make an empty range ordinary. `[2, 2)` has sum zero because the two prefix values are identical.
+
+## Build once, query many times {#implementation}
+
+```js
+function buildPrefix(values) {
+  const prefix = [0];
+  for (const value of values) {
+    prefix.push(prefix[prefix.length - 1] + value);
+  }
+  return prefix;
+}
+
+function rangeSum(prefix, left, right) {
+  const length = prefix.length - 1;
+  if (!Number.isInteger(left) || !Number.isInteger(right) ||
+      left < 0 || right < left || right > length) {
+    throw new RangeError('expected 0 <= left <= right <= length');
+  }
+  return prefix[right] - prefix[left];
+}
+```
+
+The input here is a finite array of finite numbers. For exact integer totals in JavaScript, stay within safe-integer range or choose an appropriate integer representation. Floating-point accumulation can introduce rounding error; rearranging a calculation does not make that disappear.
+
+Do not mix a `BigInt` total with ordinary numeric values. A separate all-`BigInt` implementation can support exact large integer sums when that is what the application needs.
+
+## Account for preparation {#cost}
+
+Building the table takes `O(n)` additions and `O(n)` space. Each subsequent range query uses two indexed reads and a subtraction: constant work under the usual array-access model.
+
+For `q` queries over a stable array, the total is `O(n + q)` rather than potentially `O(nq)` for repeated full-range scans. For one small query, preparation might do more work than simply summing that range.
+
+[The MIT cost-model material](https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/pages/readings/python-cost-model/) is useful background for making operation costs explicit. Our prefix table is a worked example of trading preparation and memory for cheaper later questions.
+
+## A cached answer creates update work {#updates}
+
+Change the value at index 1 from 2 to 5. Every prefix after that position needs to increase by 3. An ordinary prefix array makes queries cheap by accepting potentially linear update work.
+
+That is an appropriate trade for an immutable report or a daily snapshot. It may be poor for a live dashboard with frequent point updates. A Fenwick tree or segment tree can trade a more involved implementation for logarithmic updates and range queries.
+
+Choose based on the operation mix. "Fast range queries" leaves out half the workload if the data changes constantly.
+
+## Strings need a unit too {#strings}
+
+An array index has a clear element boundary. A string index can be less intuitive. In JavaScript, ordinary string indexing uses UTF-16 code units. A visible symbol can span more than one code unit, and a user-perceived character can contain several Unicode code points.
+
+If you adapt a prefix or sliding-window technique to text, decide whether your units are bytes, code units, code points, words or grapheme clusters. The algorithm’s bookkeeping is only meaningful when its units match the product’s question.
+
+For plain numeric usage counts, there is no such ambiguity. That is one reason to start with a small, explicit input model before generalising.
+
+## Practice: answer an average query {#practice}
+
+How would you return the average of `[left, right)`? What should happen for an empty range?
+
+<details>
+<summary>Work through the contract</summary>
+
+Divide the range sum by `right - left` for a nonempty range. For an empty range, choose an explicit result such as `null` or a validation error. Returning zero silently claims an average that was never observed.
+
+The prefix table supplies a sum. It does not choose the meaning of a missing measurement. That decision belongs in the function’s contract.
+
+</details>

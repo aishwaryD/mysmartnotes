@@ -1,0 +1,74 @@
+Someone says the dashboard is slow. Another person suggests a cache. A third suggests moving to microservices.
+
+Before choosing either, follow one request.
+
+A user opens a project page. The request crosses the network, reaches your application, checks access, reads project data, fetches activity, serialises a response and returns to the browser. Each step has a reason to exist. Each can also spend time waiting for something else.
+
+A useful system-design conversation starts by making that path visible.
+
+## Draw the path the user is waiting for {#critical-path}
+
+Consider this hypothetical trace. These numbers are invented for explanation, not measured results from a real service.
+
+| Step | Observed time |
+| --- | --- |
+| Network and gateway | 35 ms |
+| Authentication and application work | 25 ms |
+| Read project | 80 ms |
+| Read activity | 120 ms |
+| Serialise and return | 20 ms |
+
+If both reads happen one after the other, the observed total is 280 ms. If they are independent and run in parallel, the reads contribute 120 ms rather than 200 ms, giving 200 ms overall under this simplified model.
+
+That does not mean "parallel is always better". Both reads now compete for resources at the same time. An activity query that secretly needs the project result cannot simply be moved earlier. Drawing a dependency graph helps you distinguish independent work from work that only looks independent in a diagram.
+
+The **critical path** is the chain of dependencies that determines completion time. Making an unrelated background task faster does not shorten that path.
+
+## Separate useful work from waiting {#waiting}
+
+A database call lasting 120 ms might include time waiting for a connection, waiting for a lock, executing the query and transferring rows. A trace span around the entire call tells you the symptom. Additional instrumentation tells you which part to investigate.
+
+Name boundaries that correspond to decisions: connection acquisition, remote call, query execution, cache lookup. Avoid recording secrets or entire request bodies merely because they are convenient to log.
+
+At the service level, [Google’s monitoring guidance](https://sre.google/sre-book/monitoring-distributed-systems/) recommends watching latency, traffic, errors and saturation together. A latency graph alone cannot tell you whether you are doing more work, failing faster, or quietly rejecting most of the traffic.
+
+## Averages can hide the unhappy users {#distributions}
+
+Suppose nine requests take 100 ms and one takes 2,100 ms. Their mean is 300 ms. Nobody experienced a 300 ms request: most saw something faster and one person saw something much worse.
+
+Percentiles describe positions in a measured distribution. A p99 of 900 ms means roughly 99% of the observations in that measurement set were at or below 900 ms, subject to the quantile method and sample size. It says little about why the remaining observations were slow.
+
+Keep successful and failed request latency distinguishable. An authentication outage that rejects everything in 5 ms can make a combined latency chart look excellent.
+
+Do not add two services’ p99s and call the result the end-to-end p99. The relationship depends on joint observations, dependency structure and correlation. Measure the full request distribution.
+
+## Throughput and concurrency answer different questions {#capacity}
+
+Throughput is completed work per unit time. Concurrency is work in progress. A system can become more concurrent while completing fewer requests if each request spends longer waiting.
+
+For a stable observation interval, a useful accounting relationship is average work in the system equals average arrival rate multiplied by average time in the system. For an illustrative workload of 200 requests per second and 0.25 seconds per request, that suggests about 50 requests in progress on average.
+
+Treat that as an average under steady conditions, with the same system boundary for every quantity. It is not a rule that fifty worker threads will satisfy a latency target. Bursts, service-time variation, resource contention and overload still matter.
+
+[Google’s overload chapter](https://sre.google/sre-book/handling-overload/) explains why capacity needs active protection. A larger waiting room does not create more doctors; a larger queue does not create more processing capacity.
+
+## Make a small budget, then test it {#budget}
+
+Start with the user-visible target. Allocate a rough budget to the major stages. These allocations are hypotheses to guide investigation, not claims that a scheduler can reserve every millisecond.
+
+If the target is 400 ms and the ordinary path already spends 350 ms, adding a retry with a 500 ms timeout is not a small reliability improvement. It changes the user’s experience and the load on the dependency.
+
+Use the [request-budget experiment](#interactive-example) to change read duration and execution order. The arithmetic is deliberately simple so the assumptions stay visible.
+
+## A useful first investigation {#practice}
+
+Your p95 rose after a release. Throughput stayed similar. Database CPU stayed low. Connection-pool waiting time doubled. What would you investigate before adding replicas?
+
+<details>
+<summary>Work through the investigation</summary>
+
+Check whether connections are being held longer, leaked, or acquired earlier than necessary. Look for new transactions that include remote calls, a smaller pool setting, or a workload change that keeps otherwise idle connections occupied. Compare pool wait time with query execution time and transaction duration.
+
+Adding replicas might help a read bottleneck, but low database CPU plus rising connection wait is a reason to inspect how the application uses connections first. Form a falsifiable hypothesis, change one thing, and compare the same measurements after the change.
+
+</details>

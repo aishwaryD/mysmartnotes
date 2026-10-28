@@ -1,0 +1,57 @@
+Your policy assistant returns an answer and a list of source IDs. The application expects JSON, but a model sometimes produces a paragraph before the object. You add a structured-output option and the parsing failures disappear.
+
+The next failure is quieter: the object is valid, the answer sounds plausible, and one source ID does not exist. Making a response easy to parse did not make it safe to use.
+
+## Define the shape you actually consume {#shape}
+
+Begin with the application boundary. A small answer object might contain text, a source-ID list and a status indicating whether evidence is sufficient. Avoid including fields merely because the model can generate them.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "answer": {"type": "string"},
+    "sourceIds": {"type": "array", "items": {"type": "string"}},
+    "status": {"enum": ["supported", "insufficient_evidence"]}
+  },
+  "required": ["answer", "sourceIds", "status"],
+  "additionalProperties": false
+}
+```
+
+[JSON Schema's object reference](https://json-schema.org/understanding-json-schema/reference/object) explains the difference between describing properties and requiring them. A schema's allowed properties do not become required merely because they are listed. Declaring additional properties disallowed also requires deliberate consideration when schemas are composed.
+
+Treat the example as a contract to evaluate, not a promise that every provider implements every JSON Schema feature. Check the supported subset of your chosen interface.
+
+## Validate across more than one boundary {#boundaries}
+
+First check transport completion: did the request finish normally, time out, or stop before the result was complete? Then parse and validate the structure. Finally enforce application rules.
+
+For the policy assistant, every source ID must belong to the authorised evidence supplied for this request. A supported answer must not contradict the evidence or fill a missing policy with an invented rule. These checks are different in nature. Membership can be tested deterministically; whether a passage supports a claim requires a more careful evidence review.
+
+Do not let a structurally correct status field disable all later checks. The model's declaration that an answer is supported is itself an output to assess.
+
+## Make failure an ordinary result {#failure}
+
+Suppose the result contains an unknown source ID. The application can reject it and return a controlled failure, or run a bounded recovery step using the same authorised evidence. Choose the policy before the failure occurs.
+
+Avoid silently deleting the citation and presenting the original claim as established. That converts an inspectable validation failure into an unsupported answer with fewer clues. Also avoid repeatedly asking for repair without a limit: a model can produce a different invalid response on every attempt.
+
+Distinguish malformed output from insufficient evidence. One means the response did not meet the interface contract. The other may be the correct answer to a question the available documents cannot resolve.
+
+## Test the consumer as well as the model {#tests}
+
+Create fixtures for missing fields, unexpected fields, a truncated response, an unknown source, an empty evidence set and an unsupported confident answer. Verify what the user sees and whether any downstream action is possible.
+
+Keep these cases independent of prompt wording. The application should still handle them if a model version changes or a request fails midway. An attractive demo is easier to maintain when its failure states have names and explicit outcomes.
+
+## Practice: inspect a valid object {#practice}
+
+The response is schema-valid, has status supported, and cites policy-v9. This request supplied only policy-v3. What has been established, and what should you do next?
+
+<details>
+<summary>Work through the difference</summary>
+
+The structure meets the schema, but the source-membership check fails. That does not prove that the answer is false; it proves the system cannot accept this result under its evidence contract. Return the configured failure or use a bounded recovery path. Do not fetch policy-v9 under the model's authority without checking the user's access and the request's scope. Afterwards, include this exact fixture in the application's regression cases.
+
+</details>
